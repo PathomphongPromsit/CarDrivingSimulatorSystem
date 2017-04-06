@@ -224,110 +224,121 @@ def updateCurrentValue (in_head,in_data):
 		CURRENT_WHEEL_ANGLES = angles
 
 def CurrentSpeedControl():
-	global CURRNET_SPEED,ACCELERATOR,BRAKE,CURRENT_GEAR
-	
-	if CURRENT_GEAR == 'd':
-		defaultSpeed = 5.0
-		forwardMaxSpeed = 120.0
-		
-		decreaseSpeed = 0.5/10000 							#0.5/sec
-		accelerator_to_speed = (accelerator/12.17)/10000  	#0-100 12.17sec 
-		brake_to_speed = (brake/7)/10000 					#100-0 7sec
+	global CURRENT_SPEED,ACCELERATOR,BRAKE,CURRENT_GEAR
+	while True:
 		
 		
-		if CURRNET_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: 	#unAcc+brake
+		if CURRENT_GEAR == 'd':
+			defaultSpeed = 5.0
+			forwardMaxSpeed = 120.0
 			
-			CURRNET_SPEED = 0
+			decreaseSpeed = 0.5/100 							#0.5/sec
+			accelerator_to_speed = (ACCELERATOR/12.17)/100 	#0-100 12.17sec 
+			brake_to_speed = (BRAKE/7)/100 					#100-0 7sec
 			
-		elif CURRNET_SPEED == 0 and ACCELERATOR == 0 and BRAKE == 0:	#unAcc+unBrake
-			CURRNET_SPEED = defaultSpeed
-		
-		
-		else:
 			
-			CURRNET_SPEED = CURRNET_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
+			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: 	#unAcc+brake
+				
+				CURRENT_SPEED = 0
+				
+			elif CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE == 0:	#unAcc+unBrake
+				CURRENT_SPEED = defaultSpeed
 			
-			if CURRNET_SPEED > forwardMaxSpeed:
-				CURRNET_SPEED = forwardMaxSpeed
-			elif CURRNET_SPEED <= defaultSpeed and BRAKE == 0:
-				CURRNET_SPEED = defaultSpeed
-			elif CURRNET_SPEED < 0:
-				CURRNET_SPEED = 0
-		
-	elif CURRENT_GEAR == 'r':
-		defaultSpeed = 5.0
-		reverseMaxSpeed = 40.0
+			
+			else:
+				
+				CURRENT_SPEED = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
+				
+				if CURRENT_SPEED > forwardMaxSpeed:
+					CURRENT_SPEED = forwardMaxSpeed
+				elif CURRENT_SPEED <= defaultSpeed and BRAKE == 0:
+					CURRENT_SPEED = defaultSpeed
+				elif CURRENT_SPEED <= defaultSpeed and BRAKE != 0: #add
+					CURRENT_SPEED = 0
+				elif CURRENT_SPEED < 0:
+					CURRENT_SPEED = 0
+			
+		elif CURRENT_GEAR == 'r':
+			defaultSpeed = 5.0
+			reverseMaxSpeed = 40.0
 
-		decreaseSpeed = 0.5/10000						#0.5/sec			
-		accelerator_to_speed = (accelerator/12.17)/10000  	#0-100 12.17sec 
-		brake_to_speed = (brake/7)/10000 					#100-0 7sec
-		
-		
-		if CURRNET_SPEED == 0 and accelerator == 0 and brake != 0: #unAcc+brake
+			decreaseSpeed = 0.5/100						#0.5/sec			
+			accelerator_to_speed = (ACCELERATOR/12.17)/100  	#0-100 12.17sec 
+			brake_to_speed = (BRAKE/7)/100 					#100-0 7sec
 			
-			CURRNET_SPEED = 0
 			
-		elif reverseSpeed == 0 and accelerator == 0 and brake == 0:#unAcc+unBrake
-			CURRNET_SPEED = defaultSpeed
-		
-		
-		else:
+			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: #unAcc+brake
+				
+				CURRENT_SPEED = 0
+				
+			elif CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE == 0:#unAcc+unBrake
+				CURRENT_SPEED = defaultSpeed
 			
-			CURRNET_SPEED = CURRNET_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
-			if CURRNET_SPEED > reverseMaxSpeed:
-				CURRNET_SPEED = reverseMaxSpeed
-			elif CURRNET_SPEED <= defaultSpeed and brake == 0:
-				CURRNET_SPEED = defaultSpeed
-			elif CURRNET_SPEED < 0:
-				CURRNET_SPEED = 0
-	
-	elif CURRENT_GEAR == 'p':
+			
+			else:
+				
+				CURRENT_SPEED = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
+				if CURRENT_SPEED > reverseMaxSpeed:
+					CURRENT_SPEED = reverseMaxSpeed
+				elif CURRENT_SPEED <= defaultSpeed and BRAKE == 0:
+					CURRENT_SPEED = defaultSpeed
+				elif CURRENT_SPEED <= defaultSpeed and BRAKE != 0: #add
+					CURRENT_SPEED = 0
+				elif CURRENT_SPEED < 0:
+					CURRENT_SPEED = 0
 		
-		CURRNET_SPEED = 0
-	elif CURRENT_GEAR == 'n':
-		
-		CURRNET_SPEED = 0
+		elif CURRENT_GEAR == 'p':
+			
+			CURRENT_SPEED = 0
+		elif CURRENT_GEAR == 'n':
+			
+			CURRENT_SPEED = 0
 
 """
 Command Motor By CURRENT_SPEED
 """
 def MotorController():
 	global CURRENT_GEAR,CURRENT_SPEED
-	if CURRENT_GEAR == 'd':
-		if CURRENT_SPEED < 5:
-			pwmForword = 0.0
-		else:
-			pwmForword= 0.2+((0.8/120)*CURRENT_SPEED)
-		
-		board.digital[3].write(pwmForword)
 
-	elif CURRENT_GEAR == 'r':
+	while True:
 		
-		if CURRENT_SPEED < 5:
-			pwmReverse = 0.0
-		else:
-			pwmReverse= 0.2+((0.8/120)*CURRENT_SPEED)
+		if CURRENT_GEAR == 'd':
+			if CURRENT_SPEED < 5:
+				pwmForword = 0.0
+			else:
+				pwmForword= 0.2+((0.8/120)*CURRENT_SPEED)
+			
+			board.digital[3].write(pwmForword)
 
-		board.digital[5].write(pwmReverse)
-		
+		elif CURRENT_GEAR == 'r':
+			
+			if CURRENT_SPEED < 5:
+				pwmReverse = 0.0
+			else:
+				pwmReverse= 0.2+((0.8/120)*CURRENT_SPEED)
 
-	elif CURRENT_GEAR == 'p':
-		
-		board.digital[3].write(0.1)
-		
+			board.digital[5].write(pwmReverse)
+			
 
-	elif CURRENT_GEAR == 'n':
+		elif CURRENT_GEAR == 'p':
+			
+			board.digital[3].write(0.1)
+			
 
-		board.digital[3].write(0)
+		elif CURRENT_GEAR == 'n':
+
+			board.digital[3].write(0)
 """
 Command Servo By CURRENT_WHEEL_ANGLES
 """
 def ServoController():
 	global CURRENT_WHEEL_ANGLES
-	left = 65 											#left max degree
-	right = 115 										#right max degree
-	carDegree = left+(((right-left)*CURRENT_WHEEL_ANGLES)/180)		#cal degree servo
-	board.digital[12].write(carDegree)	
+	while True:
+		
+		left = 65 											#left max degree
+		right = 115 										#right max degree
+		carDegree = left+(((right-left)*CURRENT_WHEEL_ANGLES)/180)		#cal degree servo
+		board.digital[12].write(carDegree)	
 
 
 def DriverController():
@@ -377,6 +388,7 @@ def decode(income_data):
 		if income_data[i] in __header  :
 			if block_head != "":
 				assignTask(block_head, block_value)
+				
 				block_head = income_data[i]
 				block_value = ""
 
@@ -389,6 +401,7 @@ def decode(income_data):
 
 		if i == lenght-1 :
 			assignTask(block_head, block_value)
+			
 
 def decodeFromTaskQueue(task_data): 
 	__header = ['a','b','t','g']
@@ -401,26 +414,34 @@ def decodeFromTaskQueue(task_data):
 		if task_data[i] in __header  :
 			if block_head != "":
 				updateCurrentValue(block_head, block_value)
-				block_head = income_data[i]
+				print block_head, block_value
+				block_head = task_data[i]
 				block_value = ""
 
 			else:
-				block_head = income_data[i]
+				block_head = task_data[i]
 				block_value = ""	
 
 		else:
-			block_value += income_data[i]
+			block_value += task_data[i]
 
 		if i == lenght-1 :
 			updateCurrentValue(block_head, block_value)
+			print block_head,block_value
 
 def getDataFromTask():
 
 	global TASK_QUEUE
+	while True:
 
-	while not TASK_QUEUE.empty():
-	    decodeFromTaskQueue(TASK_QUEUE.get())
+		while not TASK_QUEUE.empty():
+		    decodeFromTaskQueue(TASK_QUEUE.get())
 
+def monitor():
+	global ACCELERATOR,BRAKE,CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES
+	while True:
+		print 'acc', ACCELERATOR, 'brk', BRAKE, 'spd', CURRENT_SPEED, 'gear', CURRENT_GEAR, 'ang', CURRENT_WHEEL_ANGLES
+		time.sleep(0.3)
 if __name__ == '__main__':
 	print "Start Server !! "
 
@@ -453,6 +474,8 @@ if __name__ == '__main__':
 	car_sys_motor_driven_thread.start()
 	car_sys_servo_driven_thread.start()
 	
+	monitor_thread = threading.Thread(target = monitor)
+	monitor_thread.start()
 
 
 	# Append Thread to THREAD_POOL
@@ -512,5 +535,6 @@ class DeviceSocket(threading.Thread):
 				logging.debug("Receive data from %r", self.getName())
 
 				decode(raw_data)
+				print raw_data
 		except Exception as e:
 			print "Disconenct by", self.getName(), e
