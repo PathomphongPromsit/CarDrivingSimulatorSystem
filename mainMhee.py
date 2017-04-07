@@ -96,6 +96,13 @@ def mainSocketReceiver(conn, addr):
 			command(raw_data)
 	except Exception as e:
 		logging.debug("Command Socket Disconnected from %r %r", addr, e)
+		global CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES,ACCELERATOR,BRAKE
+		#set car defult value  
+		CURRENT_SPEED = 0
+		CURRENT_GEAR = "n"
+		CURRENT_WHEEL_ANGLES = 90
+		ACCELERATOR = 0
+		BRAKE = 0
 		
 
 """
@@ -181,6 +188,7 @@ def socketAuthenticate(conn, addr):
 
 	elif auth_data == "-a SIMULATOR_SET" :
 		SIMULATOR_SET_CMD = conn
+		threading.Thread(target=mainSocketReceiver, args=(conn, addr)).start() ########################################add
 
 	else:
 		conn.close()
