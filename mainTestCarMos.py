@@ -193,13 +193,7 @@ def socketAuthenticate(conn, addr):
 	else:
 		conn.close()
 		print addr," connection failed to Authenticate"
-		
-def Driving():
-	if DRIVER != None :
-		new_thread = threading.Thread(name="Driver", target=MotorControl)
-		THREAD_POOL.append(new_thread)
-	else:
-		CURRENT_SPEED = DEFALUT_SPEED 
+
 
 """
 Set Current Speed 
