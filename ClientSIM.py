@@ -19,10 +19,11 @@ whell = board.get_pin('a:0:i')  		#set a0 pin input whell
 accelerator = board.get_pin('a:1:i')	#set a1 pin input accellerator
 brake = board.get_pin('a:2:i')			#set a2 pin input brake
 
-p = board.get_pin('d:5:i')				#set d5 pin input gp
-r = board.get_pin('d:6:i')				#set d6 pin input gr
-n = board.get_pin('d:7:i')				#set d7 pin input gn
-d = board.get_pin('d:8:i')				#set d8 pin input gd
+P = board.get_pin('d:5:i')				#set d5 pin input gp
+R = board.get_pin('d:6:i')				#set d6 pin input gr
+N = board.get_pin('d:7:i')				#set d7 pin input gn
+D = board.get_pin('d:8:i')				#set d8 pin input gd
+
 
 #edittest
 PORT1 = 7769
@@ -75,7 +76,6 @@ class Client(threading.Thread):
 
 		# Create Thread
 		t1 = threading.Thread(target=self.driverSender)
-		
 		t1.start()
 		
 			
@@ -98,57 +98,86 @@ if __name__ == '__main__':
 
 
 
-def readDataWhell():
+CURRENT_GEAR = 'K'
+CURRENT_WHEEL_ANGLES = 90
+ACCELERATOR = 0
+BRAKE = 0
+
+
+###############################################################################################################
+def readWheell():
+	while True:
 		t = whell.read()  # Read the value from pin 0
+		global CURRENT_WHEEL_ANGLES
+		
 		if not t:  # Set a default if no value read
-			t = 0
+			CURRENT_WHEEL_ANGLES = 0
+			#sent
 		else:
 			t *= 100
-		t=int((t/100)*180)
-		t = 't'+str(t) 
-		
-def readDataAccelerator():
+			t=int((t/100)*180)
+			if t != CURRENT_WHEEL_ANGLES:
+				CURRENT_WHEEL_ANGLES = a
+				#sent
+				#t = 't'+str(t) 
+	
+	
+def readAccelerator():
+	while True:
 		a = accelerator.read()  # Read the value from pin 1
+		global ACCELERATOR
+		
 		if not a:  # Set a default if no value read
-			a = 0
+			ACCELERATOR = 0
+			#sent
 		else:
 			a *= 100
-			a = int((a*100)/8.0 )
-		a = 'a'+str(a) 
-		
-def readDataBrake():
+			a = int((a*100)/8)
+			if a != ACCELERATOR:
+				ACCELERATOR = a
+				#sent
+	
+	
+def readBrake():
+	while True:
 		b = brake.read()  # Read the value from pin 2
+		global BRAKE
+		
 		if not b:  # Set a default if no value read
-			b = 0
+			BRAKE = 0
+			#sent
 		else:
 			b *= 100
-			b = int((b*100)/24.0)
-		b = 'b'+str(b) 
-		
-def readDataGear():
-		gear_p = p.read()
-		
-		gear_r = r.read()
-		
-		gear_n = n.read() # Read if the button has been pressed.
-		
-		gear_d = d.read()
+			b = int((b*100)/20)
+			if b != BRAKE:
+				BRAKE = b
+				#sent
 
-		if gear_p == True:
-			
-			gear = 'p'
-		elif gear_r == True :
-			
-			gear = 'r'
-		elif gear_n == True:
-			
-			gear = 'n'
-		elif gear_d == True:
-			
-			gear = 'd'
+def readGear():	# Read if the button has been pressed.
+	while True:
 		
-		else:
-			
-			gear = 'k'
+		gear_p = P.read()
+		gear_r = R.read()
+		gear_n = N.read() 
+		gear_d = D.read()
+		global GEAR
+		#-cg
 		
-		gear = 'g'+str(gear) 
+		if gear_p == True and GEAR != 'P':
+			
+			GEAR = 'P'
+			#sent
+		elif gear_r == True and GEAR != 'R':
+			
+			GEAR = 'R'
+			#sent
+		elif gear_n == True and GEAR != 'N':
+			
+			GEAR = 'N'
+			#sent
+		elif gear_d == True and GEAR != 'D':
+			
+			GEAR = 'D'
+			#sent
+	
+	
