@@ -75,6 +75,8 @@ THREAD_POOL = []
 
 HOST = constant.HOST
 
+PHONE_CMD,
+SIMULATOR_SET_CMD
 """
 Command Server
 """
@@ -186,6 +188,7 @@ def socketResponse(conn, message):
 		logging.debug("Command response Failed %r",e)
 		
 def socketAuthenticate(conn, addr):
+	global PHONE_CMD, SIMULATOR_SET_CMD
 	conn.send("-sq Who're you")
 	auth_data = conn.recv(1024)
 
@@ -247,9 +250,9 @@ def CurrentSpeedControl():
 			defaultSpeed = 5.0
 			forwardMaxSpeed = 120.0
 			
-			decreaseSpeed = 0.5/100 							#0.5/sec
-			accelerator_to_speed = (ACCELERATOR/12.17)/100 	#0-100 12.17sec 
-			brake_to_speed = (BRAKE/7)/100 					#100-0 7sec
+			decreaseSpeed = 0.5/1000 							#0.5/sec
+			accelerator_to_speed = (ACCELERATOR/12.17)/1000 	#0-100 12.17sec 
+			brake_to_speed = (BRAKE/7)/1000 					#100-0 7sec
 			
 			
 			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: 	#unAcc+brake
@@ -277,9 +280,9 @@ def CurrentSpeedControl():
 			defaultSpeed = 5.0
 			reverseMaxSpeed = 40.0
 
-			decreaseSpeed = 0.5/100						#0.5/sec			
-			accelerator_to_speed = (ACCELERATOR/12.17)/100  	#0-100 12.17sec 
-			brake_to_speed = (BRAKE/7)/100 					#100-0 7sec
+			decreaseSpeed = 0.5/1000						#0.5/sec			
+			accelerator_to_speed = (ACCELERATOR/12.17)/1000  	#0-100 12.17sec 
+			brake_to_speed = (BRAKE/7)/1000 					#100-0 7sec
 			
 			
 			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: #unAcc+brake
@@ -431,7 +434,7 @@ def decodeFromTaskQueue(task_data):
 		if task_data[i] in __header  :
 			if block_head != "":
 				updateCurrentValue(block_head, block_value)
-				print block_head, block_value
+				
 				block_head = task_data[i]
 				block_value = ""
 
@@ -549,9 +552,9 @@ class DeviceSocket(threading.Thread):
 			while True:
 				self.driver_event.wait()
 				raw_data = self.driver_sock.recv(1024)
-				logging.debug("Receive data from %r", self.getName())
+				#logging.debug("Receive data from %r", self.getName())
 
 				decode(raw_data)
-				print raw_data
+				#print raw_data
 		except Exception as e:
 			print "Disconenct by", self.getName(), e
