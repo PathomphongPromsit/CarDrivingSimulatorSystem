@@ -23,7 +23,7 @@ SYSTEM_STATUS = 0 	#System status
 
 
 CURRENT_SPEED = 0	#Car Status
-CURRENT_GEAR = "n"
+CURRENT_GEAR = "N"
 CURRENT_WHEEL_ANGLES = 90
 
 
@@ -37,7 +37,7 @@ BRAKE = 0
 Static Value
 """
 DEFALUT_SPEED = 0
-DEFALUT_GEAR = "n"
+DEFALUT_GEAR = "N"
 
 """
 Queue of order from data reciever
@@ -193,7 +193,13 @@ def socketAuthenticate(conn, addr):
 	else:
 		conn.close()
 		print addr," connection failed to Authenticate"
-
+		
+def Driving():
+	if DRIVER != None :
+		new_thread = threading.Thread(name="Driver", target=MotorControl)
+		THREAD_POOL.append(new_thread)
+	else:
+		CURRENT_SPEED = DEFALUT_SPEED 
 
 """
 Set Current Speed 
@@ -230,7 +236,7 @@ def CurrentSpeedControl():
 	while True:
 		
 		
-		if CURRENT_GEAR == 'd':
+		if CURRENT_GEAR == 'D':
 			defaultSpeed = 5.0
 			forwardMaxSpeed = 120.0
 			
@@ -260,7 +266,7 @@ def CurrentSpeedControl():
 				elif CURRENT_SPEED < 0:
 					CURRENT_SPEED = 0
 			
-		elif CURRENT_GEAR == 'r':
+		elif CURRENT_GEAR == 'R':
 			defaultSpeed = 5.0
 			reverseMaxSpeed = 40.0
 
@@ -289,10 +295,10 @@ def CurrentSpeedControl():
 				elif CURRENT_SPEED < 0:
 					CURRENT_SPEED = 0
 		
-		elif CURRENT_GEAR == 'p':
+		elif CURRENT_GEAR == 'P':
 			
 			CURRENT_SPEED = 0
-		elif CURRENT_GEAR == 'n':
+		elif CURRENT_GEAR == 'N':
 			
 			CURRENT_SPEED = 0
 
@@ -304,7 +310,7 @@ def MotorController():
 
 	while True:
 		
-		if CURRENT_GEAR == 'd':
+		if CURRENT_GEAR == 'D':
 			if CURRENT_SPEED < 5:
 				pwmForword = 0.0
 			else:
@@ -312,7 +318,7 @@ def MotorController():
 			
 			board.digital[3].write(pwmForword)
 
-		elif CURRENT_GEAR == 'r':
+		elif CURRENT_GEAR == 'R':
 			
 			if CURRENT_SPEED < 5:
 				pwmReverse = 0.0
@@ -322,12 +328,12 @@ def MotorController():
 			board.digital[5].write(pwmReverse)
 			
 
-		elif CURRENT_GEAR == 'p':
+		elif CURRENT_GEAR == 'P':
 			
 			board.digital[3].write(0.1)
 			
 
-		elif CURRENT_GEAR == 'n':
+		elif CURRENT_GEAR == 'N':
 
 			board.digital[3].write(0)
 """
@@ -443,7 +449,7 @@ def monitor():
 	global ACCELERATOR,BRAKE,CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES
 	while True:
 		print 'acc', ACCELERATOR, 'brk', BRAKE, 'spd', CURRENT_SPEED, 'gear', CURRENT_GEAR, 'ang', CURRENT_WHEEL_ANGLES
-		time.sleep(0.3)
+		time.sleep(1)
 if __name__ == '__main__':
 	print "Start Server !! "
 
