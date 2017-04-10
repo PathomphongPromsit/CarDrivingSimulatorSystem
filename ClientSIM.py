@@ -10,7 +10,6 @@ print "car driving simmulator"
 from pyfirmata import INPUT, OUTPUT, PWM, SERVO
 from time import sleep
 
-
 board = Arduino('/dev/ttyS0')
 it = util.Iterator(board)
 it.start()
@@ -24,102 +23,38 @@ R = board.get_pin('d:6:i')				#set d6 pin input gr
 N = board.get_pin('d:7:i')				#set d7 pin input gn
 D = board.get_pin('d:8:i')				#set d8 pin input gd
 
-
-#edittest
-PORT1 = 7769
-PORT2 = 7789
-
-message = "-a phone"
-
-cmd_list = [
-	'-a', #auth
-	'-cm', #change cotrol mode 
-	'-cg' #change gear
-]
-
-local_list = [
-	'-t'
-]
-class Client(threading.Thread):
-	"""docstring for Client"""
-
-	def __init__(self, name):
-		super(Client, self).__init__()
-		self.name = name
-
-	def driverSocketResponse(self):
-		while True:
-			raw_data = self.driver_server.recv(1024)
-			print raw_data
-
-	def commandReciever(self):
-
-		while True:
-			raw_data = command_server.recv(1024)
-			print raw_data
-			
-	def driverSender(self):
-
-		self.driver_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.driver_server.connect((IP, PORT2))	
-		self.driver_server.send(self.name)
-		t2 = threading.Thread(target=self.driverSocketResponse)
-		t2.start()
-
-
-		while True:
-			if inp.split()[0] in local_list :
-				data = tester(inp)
-				self.driver_server.send(data)
-
-			elif inp.split()[0] in cmd_list:
-				self.command_server.send(inp)
-
-			else:
-				self.driver_server.send(inp)
-
-
-	def run(self):
-		global PORT1, PORT2
-		command_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.command_server = command_server
-
-		# Send Command socket
-		self.command_server.connect((IP, PORT1))
-		auth_message = "-a "+self.name
-		self.command_server.send(auth_message)
-
-		# Create Thread
-		t1 = threading.Thread(target=self.driverSender)
-		t1.start()
-		
-			
-if __name__ == '__main__':
-
-	try:
-		inp =  str(sys.argv[1])
-	except Exception as e:
-		inp = None
-	if inp == '-m' :
-		inp = "SIMULATOR_SET"
-	else:
-		inp = "PHONE"
-
-	Client(inp).start()
-
-
-
-################################################################################################################################################################
-
-
-
-CURRENT_GEAR = 'K'
+CURRENT_GEAR = 'N'
 CURRENT_WHEEL_ANGLES = 90
 ACCELERATOR = 0
 BRAKE = 0
 
+IP = "192.168.100.1"
+PORT1 = 7769
+PORT2 = 7789
 
-###############################################################################################################
+
+
+command_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+command_server.connect((IP, PORT1))
+auth_message = "-a SIMULATOR_SET"
+command_server.send(auth_message)
+
+driver_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+driver_server.connect((IP, PORT2))	
+
+
+def driverSocketResponse():
+		while True:
+			raw_data = driver_server.recv(1024)
+			print raw_data
+
+def commandSocketResponse():
+
+		while True:
+			raw_data = command_server.recv(1024)
+			print raw_data
+
+
 def readWheell():
 	while True:
 		t = whell.read()  # Read the value from pin 0
@@ -127,14 +62,15 @@ def readWheell():
 		
 		if not t:  # Set a default if no value read
 			CURRENT_WHEEL_ANGLES = 0
-			#sent
+			data = 't' + str(CURRENT_WHEEL_ANGLES)
+			driver_server.send(data)
 		else:
 			t *= 100
 			t=int((t/100)*180)
 			if t != CURRENT_WHEEL_ANGLES:
 				CURRENT_WHEEL_ANGLES = a
-				#sent
-				#t = 't'+str(t) 
+				data = 't' + str(CURRENT_WHEEL_ANGLES)
+				driver_server.send(data)
 	
 	
 def readAccelerator():
@@ -144,13 +80,15 @@ def readAccelerator():
 		
 		if not a:  # Set a default if no value read
 			ACCELERATOR = 0
-			#sent
+			data = 'a' + str(ACCELERATOR)
+			driver_server.send(data)
 		else:
 			a *= 100
 			a = int((a*100)/8)
 			if a != ACCELERATOR:
 				ACCELERATOR = a
-				#sent
+				data = 'a' + str(ACCELERATOR)
+				driver_server.send(data)
 	
 	
 def readBrake():
@@ -160,13 +98,15 @@ def readBrake():
 		
 		if not b:  # Set a default if no value read
 			BRAKE = 0
-			#sent
+			data = 'b' + str(BRAKE)
+			driver_server.send(data)
 		else:
 			b *= 100
 			b = int((b*100)/20)
 			if b != BRAKE:
 				BRAKE = b
-				#sent
+				data = 'b' + str(BRAKE)
+				driver_server.send(data)
 
 def readGear():	# Read if the button has been pressed.
 	while True:
@@ -179,20 +119,20 @@ def readGear():	# Read if the button has been pressed.
 		#-cg
 		
 		if gear_p == True and GEAR != 'P':
-			
 			GEAR = 'P'
-			#sent
+			data = '-cg ' + str(GEAR)
+			command_server.send(data)
 		elif gear_r == True and GEAR != 'R':
-			
 			GEAR = 'R'
-			#sent
+			data = '-cg ' + str(GEAR)
+			command_server.send(data)
 		elif gear_n == True and GEAR != 'N':
-			
 			GEAR = 'N'
-			#sent
+			data = '-cg ' + str(GEAR)
+			command_server.send(data)
 		elif gear_d == True and GEAR != 'D':
-			
 			GEAR = 'D'
-			#sent
+			data = '-cg ' + str(GEAR)
+			command_server.send(data)
 	
 	
