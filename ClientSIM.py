@@ -29,7 +29,17 @@ D = board.get_pin('d:8:i')				#set d8 pin input gd
 PORT1 = 7769
 PORT2 = 7789
 
+message = "-a phone"
 
+cmd_list = [
+	'-a', #auth
+	'-cm', #change cotrol mode 
+	'-cg' #change gear
+]
+
+local_list = [
+	'-t'
+]
 class Client(threading.Thread):
 	"""docstring for Client"""
 
@@ -58,11 +68,16 @@ class Client(threading.Thread):
 
 
 		while True:
-			inp = raw_input("_>")
+			if inp.split()[0] in local_list :
+				data = tester(inp)
+				self.driver_server.send(data)
 
+			elif inp.split()[0] in cmd_list:
+				self.command_server.send(inp)
 
-			
-			self.driver_server.send(inp)
+			else:
+				self.driver_server.send(inp)
+
 
 	def run(self):
 		global PORT1, PORT2
