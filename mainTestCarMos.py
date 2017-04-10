@@ -13,6 +13,8 @@ from pyfirmata import Arduino, util
 from pyfirmata import INPUT, OUTPUT, PWM, SERVO
 from time import sleep
 
+import constant
+
 board = Arduino('/dev/ttyS0') #firmataCommunicate
 board.digital[3].mode = PWM #forward Pin
 board.digital[5].mode = PWM #revers Pin
@@ -71,7 +73,7 @@ CONTROL_MODE = None
 CLIENT_WHITELIST = sets.Set()
 THREAD_POOL = []
 
-HOST = "192.168.100.1"
+HOST = constant.HOST
 
 """
 Command Server
@@ -177,7 +179,12 @@ def changeControlmode(cmd):
 		print "Control mode not change"
 
 	
-
+def socketResponse(conn, message):
+	try:
+		conn.send(message)
+	except Exception as e:
+		logging.debug("Command response Failed %r",e)
+		
 def socketAuthenticate(conn, addr):
 	conn.send("-sq Who're you")
 	auth_data = conn.recv(1024)
@@ -376,6 +383,8 @@ def changeGear(value):
 	global CURRENT_GEAR
 	if CURRENT_GEAR != value :
 		CURRENT_GEAR = value
+		response_message = "-cg "+value
+		socketResponse(PHONE_CMD, response_message)
 		print "Change gear to ", value
 
 def assignTask(head, value):
