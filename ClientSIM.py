@@ -28,121 +28,103 @@ ACCELERATOR = 0
 BRAKE = 0
 
 
-IP = "192.168.100.1"
+IP = "192.168.137.1"
 PORT1 = 7769
 PORT2 = 7789
 
 auth_message = "-a SIMULATOR_SET"
-
-
-
-
-
-
-
-
-def driverSocketResponse():
-	global DRIVER_SERVER
-	while True:
-		raw_data = DRIVER_SERVER.recv(1024)
-		print raw_data
-
-def commandSocketResponse():
-	global COMMAND_SERVER
-	while True:
-		raw_data = COMMAND_SERVER.recv(1024)
-		print raw_data
-
+				
 
 def readWheell():
-	global DRIVER_SERVER
+	global DRIVER_SERVER, CURRENT_WHEEL_ANGLES
+	minAnalog = 0
+	maxAnalog = 1
+	rangeAnalog = maxAnalog - minAnalog
 	while True:
-		t = whell.read()  # Read the value from pin 0
-		global CURRENT_WHEEL_ANGLES
-		
-		if not t:  # Set a default if no value read
-			CURRENT_WHEEL_ANGLES = 0
+		angle = (whell.read()-minAnalog)/rangeAnalog  # Read % value from pin 0
+		angle = int(angle*180) #change to degree 0-180
+		if angle != CURRENT_WHEEL_ANGLES:
+			CURRENT_WHEEL_ANGLES = angle
 			data = 't' + str(CURRENT_WHEEL_ANGLES)
+			print data
 			DRIVER_SERVER.send(data)
-		else:
-			t *= 100
-			t=int((t/100)*180)
-			if t != CURRENT_WHEEL_ANGLES:
-				CURRENT_WHEEL_ANGLES = a
-				data = 't' + str(CURRENT_WHEEL_ANGLES)
-				DRIVER_SERVER.send(data)
 	
 	
 def readAccelerator():
-	global DRIVER_SERVER
+	global DRIVER_SERVER, ACCELERATOR
+	minAnalog = 0
+	maxAnalog = 1
+	rangeAnalog = maxAnalog - minAnalog
 	while True:
-		a = accelerator.read()  # Read the value from pin 1
-		global ACCELERATOR
-		
-		if not a:  # Set a default if no value read
-			ACCELERATOR = 0
+		acc = accelerator.read()  # Read % value from pin 1
+		acc = int(acc*100) #change to  0-100
+		if acc != ACCELERATOR:
+			ACCELERATOR = acc
 			data = 'a' + str(ACCELERATOR)
-			DRIVER_SERVER.send(data)
-		else:
-			a *= 100
-			a = int((a*100)/8)
-			if a != ACCELERATOR:
-				ACCELERATOR = a
-				data = 'a' + str(ACCELERATOR)
-				DRIVER_SERVER.send(data)
-	
+			print data
+			# DRIVER_SERVER.send(data)
+	 
 	
 def readBrake():
-	global DRIVER_SERVER
+	global DRIVER_SERVER, BRAKE
 	while True:
-		b = brake.read()  # Read the value from pin 2
-		global BRAKE
-		
-		if not b:  # Set a default if no value read
-			BRAKE = 0
+		brk = brake.read()  # Read % value from pin 2
+		brk = int(brk*100) #change to 0-100
+		if brk != BRAKE:
+			BRAKE = brk
 			data = 'b' + str(BRAKE)
-			DRIVER_SERVER.send(data)
-		else:
-			b *= 100
-			b = int((b*100)/20)
-			if b != BRAKE:
-				BRAKE = b
-				data = 'b' + str(BRAKE)
-				DRIVER_SERVER.send(data)
+			print data
+			# DRIVER_SERVER.send(data)
 
 def readGear():	# Read if the button has been pressed.
-	global COMMAND_SERVER
+	global COMMAND_SERVER, CURRENT_GEAR
 	while True:
 		
 		gear_p = P.read()
 		gear_r = R.read()
 		gear_n = N.read() 
 		gear_d = D.read()
-		global GEAR
+		
 		#-cg
 		
-		if gear_p == True and GEAR != 'P':
-			GEAR = 'P'
-			data = '-cg ' + str(GEAR)
+		if gear_p == True and CURRENT_GEAR != 'P':
+			CURRENT_GEAR = 'P'
+			data = '-cg ' + str(CURRENT_GEAR)
+			print data
 			COMMAND_SERVER.send(data)
-		elif gear_r == True and GEAR != 'R':
-			GEAR = 'R'
-			data = '-cg ' + str(GEAR)
+		elif gear_r == True and CURRENT_GEAR != 'R':
+			CURRENT_GEAR = 'R'
+			data = '-cg ' + str(CURRENT_GEAR)
+			print data
 			COMMAND_SERVER.send(data)
-		elif gear_n == True and GEAR != 'N':
-			GEAR = 'N'
-			data = '-cg ' + str(GEAR)
+		elif gear_n == True and CURRENT_GEAR != 'N':
+			CURRENT_GEAR = 'N'
+			data = '-cg ' + str(CURRENT_GEAR)
+			print data
 			COMMAND_SERVER.send(data)
-		elif gear_d == True and GEAR != 'D':
-			GEAR = 'D'
-			data = '-cg ' + str(GEAR)
+		elif gear_d == True and CURRENT_GEAR != 'D':
+			CURRENT_GEAR = 'D'
+			data = '-cg ' + str(CURRENT_GEAR)
+			print data
 			COMMAND_SERVER.send(data)
+
+# def driverSocketResponse():
+# 	global DRIVER_SERVER
+# 	while True:
+# 		raw_data = DRIVER_SERVER.recv(1024)
+# 		print raw_data
+
+# def commandSocketResponse():
+# 	global COMMAND_SERVER
+# 	while True:
+# 		raw_data = COMMAND_SERVER.recv(1024)
+# 		print raw_data
 
 
 
 if __name__ == '__main__':
 	print "Start Server !! "
-
+	# global IP, PORT1, PORT2, auth_message
 
 	COMMAND_SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	COMMAND_SERVER.connect((IP, PORT1))
@@ -150,20 +132,22 @@ if __name__ == '__main__':
 
 	DRIVER_SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	DRIVER_SERVER.connect((IP, PORT2))	
+
+
 	#read and sent
 	Read_Wheell_thread = threading.Thread(name = "Read_Wheel", target =readWheell)
-	Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
-	Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
-	Read_Gear_thread = threading.Thread(name = "Read_Gear", target =readGear)
+	# Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
+	# Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
+	# Read_Gear_thread = threading.Thread(name = "Read_Gear", target =readGear)
 
 	Read_Wheell_thread.start()
-	Read_Accelerator_thread.start()
-	Read_Brake_thread.start()
-	Read_Gear_thread.start()
+	# Read_Accelerator_thread.start()
+	# Read_Brake_thread.start()
+	# Read_Gear_thread.start()
 
 
-	#monitor
-	Monitor_Driver_thread = threading.Thread(target = driverSocketResponse)
-	Monitor_Command_thread = threading.Thread(target = commandSocketResponse)
-	Monitor_Driver_thread.start()
-	Monitor_Command_thread.start()
+	# #monitor
+	# Monitor_Driver_thread = threading.Thread(target = driverSocketResponse)
+	# Monitor_Command_thread = threading.Thread(target = commandSocketResponse)
+	# Monitor_Driver_thread.start()
+	# Monitor_Command_thread.start()
