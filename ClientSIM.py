@@ -48,7 +48,7 @@ def readWheell():
 			data = 't' + str(CURRENT_WHEEL_ANGLES)
 			print data
 			DRIVER_SERVER.send(data)
-	
+		
 	
 def readAccelerator():
 	global DRIVER_SERVER, ACCELERATOR
@@ -62,7 +62,7 @@ def readAccelerator():
 			ACCELERATOR = acc
 			data = 'a' + str(ACCELERATOR)
 			print data
-			# DRIVER_SERVER.send(data)
+			DRIVER_SERVER.send(data)
 	 
 	
 def readBrake():
@@ -74,7 +74,7 @@ def readBrake():
 			BRAKE = brk
 			data = 'b' + str(BRAKE)
 			print data
-			# DRIVER_SERVER.send(data)
+			DRIVER_SERVER.send(data)
 
 def readGear():	# Read if the button has been pressed.
 	global COMMAND_SERVER, CURRENT_GEAR
@@ -136,14 +136,14 @@ if __name__ == '__main__':
 
 	#read and sent
 	Read_Wheell_thread = threading.Thread(name = "Read_Wheel", target =readWheell)
-	# Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
-	# Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
-	# Read_Gear_thread = threading.Thread(name = "Read_Gear", target =readGear)
+	Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
+	Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
+	Read_Gear_thread = threading.Thread(name = "Read_Gear", target =readGear)
 
 	Read_Wheell_thread.start()
-	# Read_Accelerator_thread.start()
-	# Read_Brake_thread.start()
-	# Read_Gear_thread.start()
+	Read_Accelerator_thread.start()
+	Read_Brake_thread.start()
+	Read_Gear_thread.start()
 
 
 	# #monitor
