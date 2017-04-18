@@ -97,7 +97,9 @@ def mainSocketReceiver(conn, addr):
 	try:
 		while True:
 			raw_data = conn.recv(1024)
+			#print 'connRecMainSock' + raw_data # add
 			command(raw_data)
+			
 	except Exception as e:
 		logging.debug("Command Socket Disconnected from %r %r", addr, e)
 		global CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES,ACCELERATOR,BRAKE
@@ -126,6 +128,7 @@ def DriverControlSocket():
 			conn, addr = driver_control_sock.accept()
 			logging.debug( "Driver socket connect from %r", addr)
 			id_mess = conn.recv(1024)
+			#print "id_mess" + id_mess # add
 
 			if id_mess == "PHONE":
 				PHONE_DRIVER = DeviceSocket(conn, "PHONE")
@@ -163,7 +166,7 @@ def command(message):
 def changeControlmode(cmd):
 	global CONTROL_MODE, PHONE_DRIVER, CONTROL_MODE, SIMULATOR_SET_DRIVER
 
-	print cmd 
+	
 	if cmd == "phone" and CONTROL_MODE != 0 and PHONE_DRIVER != None:
 		CONTROL_MODE = 0
 		SIMULATOR_SET_DRIVER.getEvent().clear()
@@ -191,6 +194,7 @@ def socketAuthenticate(conn, addr):
 	global PHONE_CMD, SIMULATOR_SET_CMD
 	conn.send("-sq Who're you")
 	auth_data = conn.recv(1024)
+	#print 'auth_data' + auth_data # add
 
 	if auth_data == "-a PHONE":
 		PHONE_CMD = conn
@@ -217,6 +221,8 @@ Set Current Speed
 def updateCurrentValue (in_head,in_data):
 	
 	if in_head == 'a': 						#update current accelerator
+		accelerator = in_data
+		
 		accelerator = float(in_data)
 
 		global ACCELERATOR
@@ -461,7 +467,7 @@ def monitor():
 	global ACCELERATOR,BRAKE,CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES
 	while True:
 		print 'acc', ACCELERATOR, 'brk', BRAKE, 'spd', CURRENT_SPEED, 'gear', CURRENT_GEAR, 'ang', CURRENT_WHEEL_ANGLES
-		time.sleep(1)
+		time.sleep(2)
 if __name__ == '__main__':
 	print "Start Server !! "
 
@@ -517,6 +523,7 @@ class DeviceSocket(threading.Thread):
 	def handleCommandSocket():
 		while True:
 			cmd = self.command_sock.recv(1024)
+			#print 'hdCMD' + cmd # add
 			commandRequest(command_sock, cmd)
 
 	def setDriverEvent(self, event):
@@ -553,8 +560,8 @@ class DeviceSocket(threading.Thread):
 				self.driver_event.wait()
 				raw_data = self.driver_sock.recv(1024)
 				#logging.debug("Receive data from %r", self.getName())
-
+				#print 'self drive' + raw_data # add
 				decode(raw_data)
-				#print raw_data
+				
 		except Exception as e:
 			print "Disconenct by", self.getName(), e
