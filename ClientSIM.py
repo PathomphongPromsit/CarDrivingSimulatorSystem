@@ -28,12 +28,10 @@ ACCELERATOR = 0
 BRAKE = 0
 
 
-IP = "192.168.137.1"
+IP = "192.168.137.75"
 PORT1 = 7769
 PORT2 = 7789
 
-auth_message = "-a SIMULATOR_SET"
-				
 
 def readWheell():
 	global DRIVER_SERVER, CURRENT_WHEEL_ANGLES
@@ -139,26 +137,33 @@ if __name__ == '__main__':
 	print "Start Server !! "
 	# global IP, PORT1, PORT2, auth_message
 
+
+	auth_message = "-a PHONE"
+	device = "PHONE"
+				
 	COMMAND_SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	COMMAND_SERVER.connect((IP, PORT1))
-	COMMAND_SERVER.send(auth_message)
+	
 
 	DRIVER_SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	DRIVER_SERVER.connect((IP, PORT2))	
+	DRIVER_SERVER.connect((IP, PORT2))
 
+	COMMAND_SERVER.send(auth_message)	
+	DRIVER_SERVER.send(device)
 
 	#read and sent
-	Read_Wheell_thread = threading.Thread(name = "Read_Wheel", target =readWheell)
-	# Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
-	# Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
-	# Read_Gear_thread = threading.Thread(name = "Read_Gear", target =readGear)
+	Read_Gear_thread = threading.Thread(name = "Read_Gear", target =readGear)
+	Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
+	#Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
+	# Read_Wheell_thread = threading.Thread(name = "Read_Wheel", target =readWheell)
 
-	Read_Wheell_thread.start()
-	# Read_Accelerator_thread.start()
+	
+	
+	Read_Gear_thread.start()
+	Read_Accelerator_thread.start()
 	# Read_Brake_thread.start()
-	# Read_Gear_thread.start()
-
-
+	# Read_Wheell_thread.start()
+	
 	# #monitor
 	# Monitor_Driver_thread = threading.Thread(target = driverSocketResponse)
 	# Monitor_Command_thread = threading.Thread(target = commandSocketResponse)
