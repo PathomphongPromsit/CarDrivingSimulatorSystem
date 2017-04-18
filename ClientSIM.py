@@ -1,6 +1,7 @@
 import socket
 import threading
 import sys
+import time
 
 from pyfirmata import Arduino, util
 from time import sleep
@@ -39,15 +40,24 @@ def readWheell():
 	maxAnalog = 1
 	rangeAnalog = maxAnalog - minAnalog
 	while True:
-		angle = ((whell.read()-minAnalog)/rangeAnalog)*180  # Read % value from pin 0
-		angle = int(angle) 
+		angle = whell.read()
 		if not angle:
-			CURRENT_WHEEL_ANGLES = 90
-		elif angle != CURRENT_WHEEL_ANGLES:
-			CURRENT_WHEEL_ANGLES = angle
-			data = 't' + str(CURRENT_WHEEL_ANGLES)
-			print data
-			DRIVER_SERVER.send(data)
+			angle = 90
+		else:
+			angle = ((whell.read()-minAnalog)/rangeAnalog)*180  # Read % value from pin 0
+			angle = int(angle) 
+		
+		if angle != CURRENT_WHEEL_ANGLES:
+			if angle <=15 and CURRENT_WHEEL_ANGLE != 0:						#set 0
+				CURRENT_WHEEL_ANGLES = 0
+				data = 't' + str(CURRENT_WHEEL_ANGLES)
+				print data
+				DRIVER_SERVER.send(data)
+			elif angle >15:
+				CURRENT_WHEEL_ANGLES = angle
+				data = 't' + str(CURRENT_WHEEL_ANGLES)
+				print data
+				DRIVER_SERVER.send(data)
 
 
 			
@@ -56,36 +66,56 @@ def readWheell():
 	
 def readAccelerator():
 	global DRIVER_SERVER, ACCELERATOR
-	minAnalog = 0
-	maxAnalog = 1
+	minAnalog = 0.05
+	maxAnalog = 0.095
 	rangeAnalog = maxAnalog - minAnalog
 	while True:
-		acc = ((accelerator.read()-minAnalog)/rangeAnalog)*100  # Read % value from pin 1
-		acc = int(acc) 
-		if not acc:
-			ACCELERATOR = 0
-		elif acc != ACCELERATOR:
-			ACCELERATOR = acc
-			data = 'a' + str(ACCELERATOR)
-			print data
-			DRIVER_SERVER.send(data)
-	 
+		acc = accelerator.read()  # Read the value from pin 2
+		if not acc:  # Set a default if no value read
+			acc = 0
+		else:
+			acc = ((accelerator.read()-minAnalog)/rangeAnalog)*100  # Read % value from pin 1
+			acc = int(acc) 
+		
+		if acc != ACCELERATOR:
+			if acc <=15 and ACCELERATOR !=0: 							#set 0
+				ACCELERATOR = 0
+				data = 'a' + str(ACCELERATOR)
+				print data
+				DRIVER_SERVER.send(data)
+			elif acc >15:
+
+				ACCELERATOR = acc
+				data = 'a' + str(ACCELERATOR)
+				print data
+				DRIVER_SERVER.send(data)
+		 
 	
 def readBrake():
 	global DRIVER_SERVER, BRAKE
-	minAnalog = 0
-	maxAnalog = 1
+	minAnalog = 0.1
+	maxAnalog = 0.18
 	rangeAnalog = maxAnalog - minAnalog
 	while True:
-		brk = ((brake.read()-minAnalog)/rangeAnalog) *100 # Read % value from pin 2
-		brk = int(brk) 
+		brk = brake.read()
 		if not brk:
-			BRAKE = 0
-		elif brk != BRAKE:
-			BRAKE = brk
-			data = 'b' + str(BRAKE)
-			print data
-			DRIVER_SERVER.send(data)
+			brk = 0
+		else:
+
+			brk = ((brake.read()-minAnalog)/rangeAnalog) *100 # Read % value from pin 2
+			brk = int(brk) 
+		
+		if brk != BRAKE:
+			if brk <= 15 and BRAKE != 0:
+				BRAKE = 0
+				data = 'b' + str(BRAKE)
+				print data
+				DRIVER_SERVER.send(data)
+			elif brk >15:
+				BRAKE = brk
+				data = 'b' + str(BRAKE)
+				print data
+				DRIVER_SERVER.send(data)
 
 def readGear():	# Read if the button has been pressed.
 	global COMMAND_SERVER, CURRENT_GEAR
@@ -138,8 +168,8 @@ if __name__ == '__main__':
 	# global IP, PORT1, PORT2, auth_message
 
 
-	auth_message = "-a PHONE"
-	device = "PHONE"
+	auth_message = "-a SIMULATOR_SET"
+	device = "SIMULATOR_SET"
 				
 	COMMAND_SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	COMMAND_SERVER.connect((IP, PORT1))
@@ -151,17 +181,19 @@ if __name__ == '__main__':
 	COMMAND_SERVER.send(auth_message)	
 	DRIVER_SERVER.send(device)
 
+	time.sleep(1)
+
 	#read and sent
 	Read_Gear_thread = threading.Thread(name = "Read_Gear", target =readGear)
 	Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
-	#Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
+	Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
 	# Read_Wheell_thread = threading.Thread(name = "Read_Wheel", target =readWheell)
 
 	
 	
 	Read_Gear_thread.start()
 	Read_Accelerator_thread.start()
-	# Read_Brake_thread.start()
+	Read_Brake_thread.start()
 	# Read_Wheell_thread.start()
 	
 	# #monitor
