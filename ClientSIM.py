@@ -41,13 +41,19 @@ def readWheell():
 	maxAnalog = 1
 	rangeAnalog = maxAnalog - minAnalog
 	while True:
-		angle = (whell.read()-minAnalog)/rangeAnalog  # Read % value from pin 0
-		angle = int(angle*180) #change to degree 0-180
-		if angle != CURRENT_WHEEL_ANGLES:
+		angle = ((whell.read()-minAnalog)/rangeAnalog)*180  # Read % value from pin 0
+		angle = int(angle) 
+		if not angle:
+			CURRENT_WHEEL_ANGLES = 90
+		elif angle != CURRENT_WHEEL_ANGLES:
 			CURRENT_WHEEL_ANGLES = angle
 			data = 't' + str(CURRENT_WHEEL_ANGLES)
 			print data
 			DRIVER_SERVER.send(data)
+
+
+			
+			
 		
 	
 def readAccelerator():
@@ -56,9 +62,11 @@ def readAccelerator():
 	maxAnalog = 1
 	rangeAnalog = maxAnalog - minAnalog
 	while True:
-		acc = accelerator.read()  # Read % value from pin 1
-		acc = int(acc*100) #change to  0-100
-		if acc != ACCELERATOR:
+		acc = ((accelerator.read()-minAnalog)/rangeAnalog)*100  # Read % value from pin 1
+		acc = int(acc) 
+		if not acc:
+			ACCELERATOR = 0
+		elif acc != ACCELERATOR:
 			ACCELERATOR = acc
 			data = 'a' + str(ACCELERATOR)
 			print data
@@ -67,10 +75,15 @@ def readAccelerator():
 	
 def readBrake():
 	global DRIVER_SERVER, BRAKE
+	minAnalog = 0
+	maxAnalog = 1
+	rangeAnalog = maxAnalog - minAnalog
 	while True:
-		brk = brake.read()  # Read % value from pin 2
-		brk = int(brk*100) #change to 0-100
-		if brk != BRAKE:
+		brk = ((brake.read()-minAnalog)/rangeAnalog) *100 # Read % value from pin 2
+		brk = int(brk) 
+		if not brk:
+			BRAKE = 0
+		elif brk != BRAKE:
 			BRAKE = brk
 			data = 'b' + str(BRAKE)
 			print data
@@ -136,14 +149,14 @@ if __name__ == '__main__':
 
 	#read and sent
 	Read_Wheell_thread = threading.Thread(name = "Read_Wheel", target =readWheell)
-	Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
-	Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
-	Read_Gear_thread = threading.Thread(name = "Read_Gear", target =readGear)
+	# Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
+	# Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
+	# Read_Gear_thread = threading.Thread(name = "Read_Gear", target =readGear)
 
 	Read_Wheell_thread.start()
-	Read_Accelerator_thread.start()
-	Read_Brake_thread.start()
-	Read_Gear_thread.start()
+	# Read_Accelerator_thread.start()
+	# Read_Brake_thread.start()
+	# Read_Gear_thread.start()
 
 
 	# #monitor
