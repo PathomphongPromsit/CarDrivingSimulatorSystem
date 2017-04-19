@@ -254,11 +254,13 @@ def CurrentSpeedControl():
 		
 		if CURRENT_GEAR == 'D':
 			defaultSpeed = 5.0
-			forwardMaxSpeed = 120.0
+			forwardMaxSpeed = 160.0
+			maxAcc = 8.21 #0-100 12.17sec
+			maxBrk = 14.28 # 100-0 7sec
+			decreaseSpeed = 0.5/1500 		#0.5/sec
 			
-			decreaseSpeed = 0.5/1000 							#0.5/sec
-			accelerator_to_speed = (ACCELERATOR/12.17)/1000 	#0-100 12.17sec 
-			brake_to_speed = (BRAKE/7)/1000 					#100-0 7sec
+			accelerator_to_speed = ((ACCELERATOR/100)*maxAcc)/1500 	 
+			brake_to_speed = ((BRAKE/100)*maxBrk)/1500 					
 			
 			
 			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: 	#unAcc+brake
@@ -271,24 +273,28 @@ def CurrentSpeedControl():
 			
 			else:
 				
-				CURRENT_SPEED = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
+				spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
 				
-				if CURRENT_SPEED > forwardMaxSpeed:
+				if spd >= forwardMaxSpeed:
 					CURRENT_SPEED = forwardMaxSpeed
-				elif CURRENT_SPEED <= defaultSpeed and BRAKE == 0:
+				elif spd <= defaultSpeed and BRAKE == 0:
 					CURRENT_SPEED = defaultSpeed
-				elif CURRENT_SPEED <= defaultSpeed and BRAKE != 0: #add
+				elif spd <= defaultSpeed and BRAKE != 0: #add
 					CURRENT_SPEED = 0
-				elif CURRENT_SPEED < 0:
+				elif spd < 0:
 					CURRENT_SPEED = 0
+				else:
+					CURRENT_SPEED = spd
 			
 		elif CURRENT_GEAR == 'R':
 			defaultSpeed = 5.0
 			reverseMaxSpeed = 40.0
-
-			decreaseSpeed = 0.5/1000						#0.5/sec			
-			accelerator_to_speed = (ACCELERATOR/12.17)/1000  	#0-100 12.17sec 
-			brake_to_speed = (BRAKE/7)/1000 					#100-0 7sec
+			maxAcc = 8.21 #0-100 12.17sec
+			maxBrk = 14.28 # 100-0 7sec
+			decreaseSpeed = 0.5/1500 		#0.5/sec
+			
+			accelerator_to_speed = ((ACCELERATOR/100)*maxAcc)/1500 	 
+			brake_to_speed = ((BRAKE/100)*maxBrk)/1500 				
 			
 			
 			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: #unAcc+brake
@@ -301,15 +307,17 @@ def CurrentSpeedControl():
 			
 			else:
 				
-				CURRENT_SPEED = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
-				if CURRENT_SPEED > reverseMaxSpeed:
+				spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
+				if spd >= reverseMaxSpeed:
 					CURRENT_SPEED = reverseMaxSpeed
-				elif CURRENT_SPEED <= defaultSpeed and BRAKE == 0:
+				elif spd <= defaultSpeed and BRAKE == 0:
 					CURRENT_SPEED = defaultSpeed
-				elif CURRENT_SPEED <= defaultSpeed and BRAKE != 0: #add
+				elif spd <= defaultSpeed and BRAKE != 0: #add
 					CURRENT_SPEED = 0
-				elif CURRENT_SPEED < 0:
+				elif spd < 0:
 					CURRENT_SPEED = 0
+				else:
+					CURRENT_SPEED = spd
 		
 		elif CURRENT_GEAR == 'P':
 			
@@ -323,30 +331,22 @@ Command Motor By CURRENT_SPEED
 """
 def MotorController():
 	global CURRENT_GEAR,CURRENT_SPEED
-
+	MaxSpeed = 160.0
+	
 	while True:
 		
 		if CURRENT_GEAR == 'D':
-			if CURRENT_SPEED < 5:
-				pwmForword = 0.0
-			else:
-				pwmForword= 0.2+((0.8/120)*CURRENT_SPEED)
-			
+			pwmForword = CURRENT_SPEED/MaxSpeed
 			board.digital[3].write(pwmForword)
 
 		elif CURRENT_GEAR == 'R':
-			
-			if CURRENT_SPEED < 5:
-				pwmReverse = 0.0
-			else:
-				pwmReverse= 0.2+((0.8/120)*CURRENT_SPEED)
-
+			pwmReverse = CURRENT_SPEED/MaxSpeed
 			board.digital[5].write(pwmReverse)
 			
 
 		elif CURRENT_GEAR == 'P':
 			
-			board.digital[3].write(0.1)
+			board.digital[3].write(0.01)
 			
 
 		elif CURRENT_GEAR == 'N':
@@ -389,12 +389,16 @@ Integer value
 Use tasking low-level devices 
 """
 def changeGear(value):
-	global CURRENT_GEAR
-	if CURRENT_GEAR != value :
+	global CURRENT_GEAR, CURRENT_SPEED
+	if CURRENT_GEAR != value and CURRENT_SPEED == 0:
+		
 		CURRENT_GEAR = value
 		response_message = "-cg "+value
 		socketResponse(PHONE_CMD, response_message)
 		print "Change gear to ", value
+		
+
+		
 
 def assignTask(head, value):
 	control_head = ['a','t','b']
