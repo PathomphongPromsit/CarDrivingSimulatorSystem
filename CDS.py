@@ -19,7 +19,7 @@ board = Arduino('/dev/ttyS0') #firmataCommunicate
 board.digital[3].mode = PWM #forward Pin
 board.digital[5].mode = PWM #revers Pin
 board.digital[12].mode = SERVO #servo Pin
-board.digital[12].write(90) # defult Degree
+board.digital[12].write(100) # defult Degree
 
 SYSTEM_STATUS = 0 	#System status
 
@@ -129,7 +129,7 @@ class commandSocket(threading.Thread):
 			global CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES,ACCELERATOR,BRAKE
 			#set car defult value  
 			CURRENT_SPEED = 0
-			CURRENT_GEAR = "n"
+			CURRENT_GEAR = "N"
 			CURRENT_WHEEL_ANGLES = 90
 			ACCELERATOR = 0
 			BRAKE = 0
@@ -367,8 +367,8 @@ def ServoController():
 	global CURRENT_WHEEL_ANGLES
 	while True:
 		
-		left = 65 											#left max degree
-		right = 115 										#right max degree
+		left = 75 											#left max degree
+		right = 125 										#right max degree
 		carDegree = left+(((right-left)*CURRENT_WHEEL_ANGLES)/180)		#cal degree servo
 		board.digital[12].write(carDegree)	
 
