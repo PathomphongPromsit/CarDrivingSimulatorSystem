@@ -75,8 +75,6 @@ THREAD_POOL = []
 
 HOST = constant.HOST
 
-PHONE_CMD,
-SIMULATOR_SET_CMD
 """
 Command Server
 """
@@ -93,13 +91,11 @@ def MainSocket():
 		logging.debug( "Main socket connect from %r", addr)
 		socketAuthenticate(conn,addr)
 
- def mainSocketReceiver(conn, addr):
+def mainSocketReceiver(conn, addr):
 	try:
 		while True:
 			raw_data = conn.recv(1024)
-			#print 'connRecMainSock' + raw_data # add
 			command(raw_data)
-			
 	except Exception as e:
 		logging.debug("Command Socket Disconnected from %r %r", addr, e)
 		global CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES,ACCELERATOR,BRAKE
@@ -128,7 +124,6 @@ def DriverControlSocket():
 			conn, addr = driver_control_sock.accept()
 			logging.debug( "Driver socket connect from %r", addr)
 			id_mess = conn.recv(1024)
-			#print "id_mess" + id_mess # add
 
 			if id_mess == "PHONE":
 				PHONE_DRIVER = DeviceSocket(conn, "PHONE")
@@ -166,7 +161,7 @@ def command(message):
 def changeControlmode(cmd):
 	global CONTROL_MODE, PHONE_DRIVER, CONTROL_MODE, SIMULATOR_SET_DRIVER
 
-	
+	print cmd 
 	if cmd == "phone" and CONTROL_MODE != 0 and PHONE_DRIVER != None:
 		CONTROL_MODE = 0
 		SIMULATOR_SET_DRIVER.getEvent().clear()
@@ -189,12 +184,10 @@ def socketResponse(conn, message):
 		conn.send(message)
 	except Exception as e:
 		logging.debug("Command response Failed %r",e)
-
+		
 def socketAuthenticate(conn, addr):
-	global PHONE_CMD, SIMULATOR_SET_CMD
 	conn.send("-sq Who're you")
 	auth_data = conn.recv(1024)
-	#print 'auth_data' + auth_data # add
 
 	if auth_data == "-a PHONE":
 		PHONE_CMD = conn
@@ -221,8 +214,6 @@ Set Current Speed
 def updateCurrentValue (in_head,in_data):
 	
 	if in_head == 'a': 						#update current accelerator
-		accelerator = in_data
-		
 		accelerator = float(in_data)
 
 		global ACCELERATOR
@@ -256,9 +247,9 @@ def CurrentSpeedControl():
 			defaultSpeed = 5.0
 			forwardMaxSpeed = 120.0
 			
-			decreaseSpeed = 0.5/1000 							#0.5/sec
-			accelerator_to_speed = (ACCELERATOR/12.17)/1000 	#0-100 12.17sec 
-			brake_to_speed = (BRAKE/7)/1000 					#100-0 7sec
+			decreaseSpeed = 0.5/100 							#0.5/sec
+			accelerator_to_speed = (ACCELERATOR/12.17)/100 	#0-100 12.17sec 
+			brake_to_speed = (BRAKE/7)/100 					#100-0 7sec
 			
 			
 			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: 	#unAcc+brake
@@ -286,9 +277,9 @@ def CurrentSpeedControl():
 			defaultSpeed = 5.0
 			reverseMaxSpeed = 40.0
 
-			decreaseSpeed = 0.5/1000						#0.5/sec			
-			accelerator_to_speed = (ACCELERATOR/12.17)/1000  	#0-100 12.17sec 
-			brake_to_speed = (BRAKE/7)/1000 					#100-0 7sec
+			decreaseSpeed = 0.5/100						#0.5/sec			
+			accelerator_to_speed = (ACCELERATOR/12.17)/100  	#0-100 12.17sec 
+			brake_to_speed = (BRAKE/7)/100 					#100-0 7sec
 			
 			
 			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: #unAcc+brake
@@ -440,7 +431,7 @@ def decodeFromTaskQueue(task_data):
 		if task_data[i] in __header  :
 			if block_head != "":
 				updateCurrentValue(block_head, block_value)
-				
+				print block_head, block_value
 				block_head = task_data[i]
 				block_value = ""
 
@@ -467,7 +458,7 @@ def monitor():
 	global ACCELERATOR,BRAKE,CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES
 	while True:
 		print 'acc', ACCELERATOR, 'brk', BRAKE, 'spd', CURRENT_SPEED, 'gear', CURRENT_GEAR, 'ang', CURRENT_WHEEL_ANGLES
-		time.sleep(2)
+		time.sleep(1)
 if __name__ == '__main__':
 	print "Start Server !! "
 
@@ -509,59 +500,3 @@ if __name__ == '__main__':
 	# THREAD_POOL.append(car_sys_servo_driven_thread)
 	# THREAD_POOL.append(main_socket_thread)
 	# THREAD_POOL.append(driver_control_socket_thread)
-
-
-class DeviceSocket(threading.Thread):
-	
-
-	def __init__(self, conn, name, event=threading.Event()):
-		threading.Thread.__init__(self)
-		self._name = name
-		self.driver_sock = conn
-		self.driver_event = threading.Event()
-
-	def handleCommandSocket():
-		while True:
-			cmd = self.command_sock.recv(1024)
-			#print 'hdCMD' + cmd # add
-			commandRequest(command_sock, cmd)
-
-	def setDriverEvent(self, event):
-		self.driver_event = event
-
-	def getEvent(self):
-		return self.driver_event
-
-	def setCommandSocket(conn, id_code):
-		self.command_sock = conn, code
-
-	def commandSocket():
-		return self.command_sock
-
-	def setDriverSocket(conn):
-		self.driver_sock = conn
-
-	def driverSocket(self):
-		return self.driver_sock
-
-	def setId(self, Id):
-		self._Id = Id
-
-	def getId(self):
-		return self._Id
-
-	def getName(self):
-		return self._name
-
-	def run(self):
-		print "starting with ", self._name
-		try:
-			while True:
-				self.driver_event.wait()
-				raw_data = self.driver_sock.recv(1024)
-				#logging.debug("Receive data from %r", self.getName())
-				#print 'self drive' + raw_data # add
-				decode(raw_data)
-				
-		except Exception as e:
-			print "Disconenct by", self.getName(), e
