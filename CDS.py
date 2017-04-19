@@ -71,12 +71,9 @@ None = No Client
 CONTROL_MODE = None
 
 CLIENT_WHITELIST = sets.Set()
-THREAD_POOL = []
 
 HOST = constant.HOST
 
-PHONE_CMD,
-SIMULATOR_SET_CMD
 """
 Command Server
 """
@@ -93,7 +90,6 @@ class commandSocket(threading.Thread):
 
 
 	def run(self):
-		print "Command socket ready."
 		while True:
 			conn, addr = self.command_sock.accept()
 			logging.debug( "Main socket connect from %r", addr)
@@ -122,7 +118,7 @@ class commandSocket(threading.Thread):
 			while True:
 				raw_data = conn.recv(1024)
 				#print 'connRecMainSock' + raw_data # add
-				command(raw_data)
+				command(conn, raw_data)
 				
 		except Exception as e:
 			logging.debug("Command Socket Disconnected from %r %r", addr, e)
@@ -178,7 +174,7 @@ def DriverControlSocket():
 	except Exception as e :
 		raise e
 
-def command(message):
+def command(conn, message):
 	command = message.split()[0] 
 
 	if command == '-cg':
@@ -187,21 +183,25 @@ def command(message):
 	if command == '-cm':
 		changeControlmode(message.split()[1])
 
+
 def changeControlmode(cmd):
 	global CONTROL_MODE, PHONE_DRIVER, CONTROL_MODE, SIMULATOR_SET_DRIVER
 
 	
-	if cmd == "ph" and CONTROL_MODE != 0 and PHONE_DRIVER != None:
+	if cmd == "PH" and CONTROL_MODE != 0 and PHONE_DRIVER != None:
 		CONTROL_MODE = 0
+		PHONE_CMD.send("-cm PH")
+
 		SIMULATOR_SET_DRIVER.getEvent().clear()
 		PHONE_DRIVER.getEvent().set()
 		print "Change control mode to", cmd
 
-	elif cmd == "sim" and CONTROL_MODE != 1 and SIMULATOR_SET_DRIVER != None:
+	elif cmd == "SIM" and CONTROL_MODE != 1 and SIMULATOR_SET_DRIVER != None:
 		CONTROL_MODE = 1
+		PHONE_CMD.send("-cm SIM")
+
 		SIMULATOR_SET_DRIVER.getEvent().set()
 		PHONE_DRIVER.getEvent().clear()
-
 		print "Change control mode to", cmd
 
 	else :
@@ -401,15 +401,15 @@ def changeGear(value):
 	if CURRENT_GEAR != value and CURRENT_SPEED == 0 :
 		CURRENT_GEAR = value
 		response_message = "-cg "+value
-		socketResponse(PHONE_CMD, response_message)
+		PHONE_CMD.send(response_message)
 		print "Change gear to ", value
 
 def assignTask(head, value):
 	control_head = ['a','t','b']
 	if head in control_head:
 		TASK_QUEUE.put(head+value)
-	elif head == 'g' :
-		changeGear(value)
+	# elif head == 'g' :
+	# 	changeGear(value)
 
 def decode(income_data):
 	__header = ['a','b','t','g']
@@ -518,7 +518,6 @@ if __name__ == '__main__':
 
 
 class DeviceSocket(threading.Thread):
-	
 
 	def __init__(self, conn, name, event=threading.Event()):
 		threading.Thread.__init__(self)
