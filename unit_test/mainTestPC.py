@@ -6,26 +6,12 @@ import time
 import sets 
 import logging
 
-import sys
-import struct
-
-from pyfirmata import Arduino, util
-from pyfirmata import INPUT, OUTPUT, PWM, SERVO
-from time import sleep
-
-import constant
-
-board = Arduino('/dev/ttyS0') #firmataCommunicate
-board.digital[3].mode = PWM #forward Pin
-board.digital[5].mode = PWM #revers Pin
-board.digital[12].mode = SERVO #servo Pin
-board.digital[12].write(90) # defult Degree
 
 SYSTEM_STATUS = 0 	#System status
 
 
 CURRENT_SPEED = 0	#Car Status
-CURRENT_GEAR = "N"
+CURRENT_GEAR = "n"
 CURRENT_WHEEL_ANGLES = 90
 
 
@@ -39,7 +25,7 @@ BRAKE = 0
 Static Value
 """
 DEFALUT_SPEED = 0
-DEFALUT_GEAR = "N"
+DEFALUT_GEAR = "n"
 
 """
 Queue of order from data reciever
@@ -73,10 +59,8 @@ CONTROL_MODE = None
 CLIENT_WHITELIST = sets.Set()
 THREAD_POOL = []
 
-HOST = constant.HOST
+HOST = "192.168.100.1"
 
-PHONE_CMD,
-SIMULATOR_SET_CMD
 """
 Command Server
 """
@@ -93,13 +77,11 @@ def MainSocket():
 		logging.debug( "Main socket connect from %r", addr)
 		socketAuthenticate(conn,addr)
 
- def mainSocketReceiver(conn, addr):
+def mainSocketReceiver(conn, addr):
 	try:
 		while True:
 			raw_data = conn.recv(1024)
-			#print 'connRecMainSock' + raw_data # add
 			command(raw_data)
-			
 	except Exception as e:
 		logging.debug("Command Socket Disconnected from %r %r", addr, e)
 		global CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES,ACCELERATOR,BRAKE
@@ -128,7 +110,6 @@ def DriverControlSocket():
 			conn, addr = driver_control_sock.accept()
 			logging.debug( "Driver socket connect from %r", addr)
 			id_mess = conn.recv(1024)
-			#print "id_mess" + id_mess # add
 
 			if id_mess == "PHONE":
 				PHONE_DRIVER = DeviceSocket(conn, "PHONE")
@@ -166,7 +147,7 @@ def command(message):
 def changeControlmode(cmd):
 	global CONTROL_MODE, PHONE_DRIVER, CONTROL_MODE, SIMULATOR_SET_DRIVER
 
-	
+	print cmd 
 	if cmd == "phone" and CONTROL_MODE != 0 and PHONE_DRIVER != None:
 		CONTROL_MODE = 0
 		SIMULATOR_SET_DRIVER.getEvent().clear()
@@ -184,17 +165,10 @@ def changeControlmode(cmd):
 		print "Control mode not change"
 
 	
-def socketResponse(conn, message):
-	try:
-		conn.send(message)
-	except Exception as e:
-		logging.debug("Command response Failed %r",e)
 
 def socketAuthenticate(conn, addr):
-	global PHONE_CMD, SIMULATOR_SET_CMD
 	conn.send("-sq Who're you")
 	auth_data = conn.recv(1024)
-	#print 'auth_data' + auth_data # add
 
 	if auth_data == "-a PHONE":
 		PHONE_CMD = conn
@@ -207,13 +181,7 @@ def socketAuthenticate(conn, addr):
 	else:
 		conn.close()
 		print addr," connection failed to Authenticate"
-		
-def Driving():
-	if DRIVER != None :
-		new_thread = threading.Thread(name="Driver", target=MotorControl)
-		THREAD_POOL.append(new_thread)
-	else:
-		CURRENT_SPEED = DEFALUT_SPEED 
+
 
 """
 Set Current Speed 
@@ -221,8 +189,6 @@ Set Current Speed
 def updateCurrentValue (in_head,in_data):
 	
 	if in_head == 'a': 						#update current accelerator
-		accelerator = in_data
-		
 		accelerator = float(in_data)
 
 		global ACCELERATOR
@@ -252,15 +218,13 @@ def CurrentSpeedControl():
 	while True:
 		
 		
-		if CURRENT_GEAR == 'D':
+		if CURRENT_GEAR == 'd':
 			defaultSpeed = 5.0
-			forwardMaxSpeed = 160.0
-			maxAcc = 8.21 #0-100 12.17sec
-			maxBrk = 14.28 # 100-0 7sec
-			decreaseSpeed = 0.5/1500 		#0.5/sec
+			forwardMaxSpeed = 120.0
 			
-			accelerator_to_speed = ((ACCELERATOR/100)*maxAcc)/1500 	 
-			brake_to_speed = ((BRAKE/100)*maxBrk)/1500 					
+			decreaseSpeed = 0.5/100 							#0.5/sec
+			accelerator_to_speed = (ACCELERATOR/12.17)/100 	#0-100 12.17sec 
+			brake_to_speed = (BRAKE/7)/100 					#100-0 7sec
 			
 			
 			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: 	#unAcc+brake
@@ -273,28 +237,24 @@ def CurrentSpeedControl():
 			
 			else:
 				
-				spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
+				CURRENT_SPEED = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
 				
-				if spd >= forwardMaxSpeed:
+				if CURRENT_SPEED > forwardMaxSpeed:
 					CURRENT_SPEED = forwardMaxSpeed
-				elif spd <= defaultSpeed and BRAKE == 0:
+				elif CURRENT_SPEED <= defaultSpeed and BRAKE == 0:
 					CURRENT_SPEED = defaultSpeed
-				elif spd <= defaultSpeed and BRAKE != 0: #add
+				elif CURRENT_SPEED <= defaultSpeed and BRAKE != 0: #add
 					CURRENT_SPEED = 0
-				elif spd < 0:
+				elif CURRENT_SPEED < 0:
 					CURRENT_SPEED = 0
-				else:
-					CURRENT_SPEED = spd
 			
-		elif CURRENT_GEAR == 'R':
+		elif CURRENT_GEAR == 'r':
 			defaultSpeed = 5.0
 			reverseMaxSpeed = 40.0
-			maxAcc = 8.21 #0-100 12.17sec
-			maxBrk = 14.28 # 100-0 7sec
-			decreaseSpeed = 0.5/1500 		#0.5/sec
-			
-			accelerator_to_speed = ((ACCELERATOR/100)*maxAcc)/1500 	 
-			brake_to_speed = ((BRAKE/100)*maxBrk)/1500 				
+
+			decreaseSpeed = 0.5/100						#0.5/sec			
+			accelerator_to_speed = (ACCELERATOR/12.17)/100  	#0-100 12.17sec 
+			brake_to_speed = (BRAKE/7)/100 					#100-0 7sec
 			
 			
 			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: #unAcc+brake
@@ -307,22 +267,20 @@ def CurrentSpeedControl():
 			
 			else:
 				
-				spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
-				if spd >= reverseMaxSpeed:
+				CURRENT_SPEED = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
+				if CURRENT_SPEED > reverseMaxSpeed:
 					CURRENT_SPEED = reverseMaxSpeed
-				elif spd <= defaultSpeed and BRAKE == 0:
+				elif CURRENT_SPEED <= defaultSpeed and BRAKE == 0:
 					CURRENT_SPEED = defaultSpeed
-				elif spd <= defaultSpeed and BRAKE != 0: #add
+				elif CURRENT_SPEED <= defaultSpeed and BRAKE != 0: #add
 					CURRENT_SPEED = 0
-				elif spd < 0:
+				elif CURRENT_SPEED < 0:
 					CURRENT_SPEED = 0
-				else:
-					CURRENT_SPEED = spd
 		
-		elif CURRENT_GEAR == 'P':
+		elif CURRENT_GEAR == 'p':
 			
 			CURRENT_SPEED = 0
-		elif CURRENT_GEAR == 'N':
+		elif CURRENT_GEAR == 'n':
 			
 			CURRENT_SPEED = 0
 
@@ -331,27 +289,35 @@ Command Motor By CURRENT_SPEED
 """
 def MotorController():
 	global CURRENT_GEAR,CURRENT_SPEED
-	MaxSpeed = 160.0
-	
+
 	while True:
 		
-		if CURRENT_GEAR == 'D':
-			pwmForword = CURRENT_SPEED/MaxSpeed
-			board.digital[3].write(pwmForword)
+		if CURRENT_GEAR == 'd':
+			if CURRENT_SPEED < 5:
+				pwmForword = 0.0
+			else:
+				pwmForword= 0.2+((0.8/120)*CURRENT_SPEED)
+			
+			#board.digital[3].write(pwmForword)
 
-		elif CURRENT_GEAR == 'R':
-			pwmReverse = CURRENT_SPEED/MaxSpeed
-			board.digital[5].write(pwmReverse)
+		elif CURRENT_GEAR == 'r':
+			
+			if CURRENT_SPEED < 5:
+				pwmReverse = 0.0
+			else:
+				pwmReverse= 0.2+((0.8/120)*CURRENT_SPEED)
+
+			#board.digital[5].write(pwmReverse)
 			
 
-		elif CURRENT_GEAR == 'P':
-			
-			board.digital[3].write(0.01)
+		elif CURRENT_GEAR == 'p':
+			pwm = 0.1
+			#board.digital[3].write(0.1)
 			
 
-		elif CURRENT_GEAR == 'N':
-
-			board.digital[3].write(0)
+		elif CURRENT_GEAR == 'n':
+			pwm = 0
+			#board.digital[3].write(0)
 """
 Command Servo By CURRENT_WHEEL_ANGLES
 """
@@ -362,7 +328,7 @@ def ServoController():
 		left = 65 											#left max degree
 		right = 115 										#right max degree
 		carDegree = left+(((right-left)*CURRENT_WHEEL_ANGLES)/180)		#cal degree servo
-		board.digital[12].write(carDegree)	
+		#board.digital[12].write(carDegree)	
 
 
 def DriverController():
@@ -389,16 +355,10 @@ Integer value
 Use tasking low-level devices 
 """
 def changeGear(value):
-	global CURRENT_GEAR, CURRENT_SPEED
-	if CURRENT_GEAR != value and CURRENT_SPEED == 0:
-		
+	global CURRENT_GEAR
+	if CURRENT_GEAR != value :
 		CURRENT_GEAR = value
-		response_message = "-cg "+value
-		socketResponse(PHONE_CMD, response_message)
 		print "Change gear to ", value
-		
-
-		
 
 def assignTask(head, value):
 	control_head = ['a','t','b']
@@ -444,7 +404,7 @@ def decodeFromTaskQueue(task_data):
 		if task_data[i] in __header  :
 			if block_head != "":
 				updateCurrentValue(block_head, block_value)
-				
+				print block_head, block_value
 				block_head = task_data[i]
 				block_value = ""
 
@@ -471,7 +431,7 @@ def monitor():
 	global ACCELERATOR,BRAKE,CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES
 	while True:
 		print 'acc', ACCELERATOR, 'brk', BRAKE, 'spd', CURRENT_SPEED, 'gear', CURRENT_GEAR, 'ang', CURRENT_WHEEL_ANGLES
-		time.sleep(2)
+		time.sleep(0.3)
 if __name__ == '__main__':
 	print "Start Server !! "
 
@@ -527,7 +487,6 @@ class DeviceSocket(threading.Thread):
 	def handleCommandSocket():
 		while True:
 			cmd = self.command_sock.recv(1024)
-			#print 'hdCMD' + cmd # add
 			commandRequest(command_sock, cmd)
 
 	def setDriverEvent(self, event):
@@ -563,9 +522,9 @@ class DeviceSocket(threading.Thread):
 			while True:
 				self.driver_event.wait()
 				raw_data = self.driver_sock.recv(1024)
-				#logging.debug("Receive data from %r", self.getName())
-				#print 'self drive' + raw_data # add
+				logging.debug("Receive data from %r", self.getName())
+
 				decode(raw_data)
-				
+				print raw_data
 		except Exception as e:
 			print "Disconenct by", self.getName(), e
