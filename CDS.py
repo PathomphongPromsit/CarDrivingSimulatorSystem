@@ -103,13 +103,14 @@ class commandSocket(threading.Thread):
 
 		if auth_data == "-a PHONE":
 			PHONE_CMD = conn
+			new_thread = threading.Thread(target=self.commandSocketReceiver, args=(conn, addr))
 
-			threading.Thread(target=self.commandSocketReceiver, args=(conn, addr)).start()
-
+			new_thread.start()
 		elif auth_data == "-a SIMULATOR_SET" :
 			SIMULATOR_SET_CMD = conn
 
-			threading.Thread(target=self.commandSocketReceiver, args=(conn, addr)).start()
+			newthread = threading.Thread(target=self.commandSocketReceiver, args=(conn, addr))
+			new_thread.start()
 
 		else:
 			conn.close()
@@ -478,7 +479,7 @@ def decodeFromTaskQueue(task_data):
 	for i in range(1, lenght):
 		block_value += task_data[i]
 	updateCurrentValue(task_data[0], block_value)
-	print task_data[0],block_value
+	# print task_data[0],block_value
 		
 
 
@@ -591,7 +592,6 @@ class DeviceSocket(threading.Thread):
 		print "starting with ", self._name
 
 		try:
-			self.setDaemon(True)
 
 			while True:
 				self.driver_event.wait()
