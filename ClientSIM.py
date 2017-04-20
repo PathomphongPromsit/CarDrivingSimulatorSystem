@@ -23,13 +23,15 @@ R = board.get_pin('d:6:i')				#set d6 pin input gr
 N = board.get_pin('d:7:i')				#set d7 pin input gn
 D = board.get_pin('d:8:i')				#set d8 pin input gd
 
+board.digital[13].mode = OUTPUT
+
 CURRENT_GEAR = 'N'
 CURRENT_WHEEL_ANGLES = 90
 ACCELERATOR = 0
 BRAKE = 0
 
 
-IP = "192.168.137.75"
+IP = "192.168.100.1"
 PORT1 = 7769
 PORT2 = 7789
 
@@ -149,6 +151,7 @@ def readGear():	# Read if the button has been pressed.
 			print data
 			COMMAND_SERVER.send(data)
 
+
 # def driverSocketResponse():
 # 	global DRIVER_SERVER
 # 	while True:
@@ -161,13 +164,23 @@ def readGear():	# Read if the button has been pressed.
 # 		raw_data = COMMAND_SERVER.recv(1024)
 # 		print raw_data
 
-
-
 if __name__ == '__main__':
 	print "Start Server !! "
 	# global IP, PORT1, PORT2, auth_message
 
-
+	board.digital[13].write(1)
+	sleep(1)
+	board.digital[13].write(0)
+	sleep(1)
+	board.digital[13].write(1)
+	sleep(1)
+	board.digital[13].write(0)
+	sleep(1)
+	board.digital[13].write(1)
+	sleep(1)
+	board.digital[13].write(0)
+	sleep(1)
+	
 	auth_message = "-a SIMULATOR_SET"
 	device = "SIMULATOR_SET"
 				
@@ -188,7 +201,7 @@ if __name__ == '__main__':
 	Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
 	Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
 	# Read_Wheell_thread = threading.Thread(name = "Read_Wheel", target =readWheell)
-
+	
 	
 	
 	Read_Gear_thread.start()
