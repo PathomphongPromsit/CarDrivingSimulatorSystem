@@ -231,14 +231,14 @@ def updateCurrentValue (in_head,in_data):
 	if in_head == 'a': 						#update current accelerator
 		accelerator = in_data
 		
-		accelerator = float(in_data)
+		accelerator = int(in_data)
 
 		global ACCELERATOR
 		ACCELERATOR = accelerator 
 
 
 	elif in_head == 'b': 					#update current brake
-		brake = float(in_data)
+		brake = int(in_data)
 		
 		global BRAKE
 		BRAKE = brake
@@ -438,30 +438,40 @@ def decode(income_data):
 			
 
 def decodeFromTaskQueue(task_data): 
-	__header = ['a','b','t','g']
-	block_head = ""
-	block_value = ""
-
 	lenght = len(task_data)
+	block_value = ""
+	for i in range(1, lenght):
+		block_value += task_data[i]
+	updateCurrentValue(task_data[0], block_value)
+	print task_data[0],block_value
+		
 
-	for i in range(lenght):
-		if task_data[i] in __header  :
-			if block_head != "":
-				updateCurrentValue(block_head, block_value)
+
+
+# __header = ['a','b','t','g']
+# 	block_head = ""
+# 	block_value = ""
+
+# 	lenght = len(task_data)
+
+# 	for i in range(lenght):
+# 		if task_data[i] in __header  :
+# 			if block_head != "":
+# 				updateCurrentValue(block_head, block_value)
 				
-				block_head = task_data[i]
-				block_value = ""
+# 				block_head = task_data[i]
+# 				block_value = ""
 
-			else:
-				block_head = task_data[i]
-				block_value = ""	
+# 			else:
+# 				block_head = task_data[i]
+# 				block_value = ""	
 
-		else:
-			block_value += task_data[i]
+# 		else:
+# 			block_value += task_data[i]
 
-		if i == lenght-1 :
-			updateCurrentValue(block_head, block_value)
-			print block_head,block_value
+# 		if i == lenght-1 :
+# 			updateCurrentValue(block_head, block_value)
+# 			print block_head,block_value
 
 def getDataFromTask():
 
