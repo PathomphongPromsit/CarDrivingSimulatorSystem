@@ -105,6 +105,7 @@ class commandSocket(threading.Thread):
 			PHONE_CMD = conn
 			new_thread = threading.Thread(target=self.commandSocketReceiver, args=(conn, addr))
 
+			threading.Thread(target=self.commandSocketReceiver, args=(conn, addr)).start()
 			new_thread.start()
 		elif auth_data == "-a SIMULATOR_SET" :
 			SIMULATOR_SET_CMD = conn
@@ -300,10 +301,12 @@ def CurrentSpeedControl():
 			forwardMaxSpeed = 160.0
 			maxAcc = 8.21 #0-100 12.17sec
 			maxBrk = 14.28 # 100-0 7sec
-			decreaseSpeed = 0.5/1500 		#0.5/sec
+			decreaseSpeed = 0.5/2000		#0.5/sec
 			
-			accelerator_to_speed = ((ACCELERATOR/100)*maxAcc)/1500 	 
-			brake_to_speed = ((BRAKE/100)*maxBrk)/1500 					
+			accelerator_to_speed = ((ACCELERATOR/100)*maxAcc)/2000 	 
+			brake_to_speed = ((BRAKE/100)*maxBrk)/2000 	
+
+			maxSpeedCurrentAcc = (ACCELERATOR/100)*forwardMaxSpeed
 			
 			
 			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: 	#unAcc+brake
@@ -318,7 +321,9 @@ def CurrentSpeedControl():
 				
 				spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
 				
-				if spd >= forwardMaxSpeed:
+				if spd >= maxSpeedCurrentAcc:
+					CURRENT_SPEED = maxSpeedCurrentAcc
+				elif spd >= forwardMaxSpeed:
 					CURRENT_SPEED = forwardMaxSpeed
 				elif spd <= defaultSpeed and BRAKE == 0:
 					CURRENT_SPEED = defaultSpeed
@@ -334,11 +339,12 @@ def CurrentSpeedControl():
 			reverseMaxSpeed = 40.0
 			maxAcc = 8.21 #0-100 12.17sec
 			maxBrk = 14.28 # 100-0 7sec
-			decreaseSpeed = 0.5/1500 		#0.5/sec
+			decreaseSpeed = 0.5/2000 		#0.5/sec
 			
-			accelerator_to_speed = ((ACCELERATOR/100)*maxAcc)/1500 	 
-			brake_to_speed = ((BRAKE/100)*maxBrk)/1500 				
+			accelerator_to_speed = ((ACCELERATOR/100)*maxAcc)/2000 	 
+			brake_to_speed = ((BRAKE/100)*maxBrk)/2000				
 			
+			maxSpeedCurrentAcc = (ACCELERATOR/100)*reverseMaxSpeed
 			
 			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: #unAcc+brake
 				
@@ -351,7 +357,10 @@ def CurrentSpeedControl():
 			else:
 				
 				spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
-				if spd >= reverseMaxSpeed:
+				if spd >= maxSpeedCurrentAcc:
+					CURRENT_SPEED = maxSpeedCurrentAcc
+
+				elif spd >= reverseMaxSpeed:
 					CURRENT_SPEED = reverseMaxSpeed
 				elif spd <= defaultSpeed and BRAKE == 0:
 					CURRENT_SPEED = defaultSpeed
@@ -374,22 +383,34 @@ Command Motor By CURRENT_SPEED
 """
 def MotorController():
 	global CURRENT_GEAR,CURRENT_SPEED
-	MaxSpeed = 160.0
+	MaxSpeedF = 160.0
+	
+
+	pwmStartRun = 0.2 #Motor begin run
+	pwmCal =  (1 - pwmStartRun)/MaxSpeed
+
 	
 	while True:
 		
 		if CURRENT_GEAR == 'D':
-			pwmForword = CURRENT_SPEED/MaxSpeed
-			board.digital[3].write(pwmForword)
+			if CURRENT_SPEED == 0:
+				board.digital[3].write(0)
+			else:
+
+				pwmForword = (CURRENT_SPEED * pwmCal) + pwmStartRun
+				board.digital[3].write(pwmForword)
 
 		elif CURRENT_GEAR == 'R':
-			pwmReverse = CURRENT_SPEED/MaxSpeed
-			board.digital[5].write(pwmReverse)
+			if CURRENT_SPEED == 0:
+				board.digital[5].write(0)
+			else:
+				pwmReverse= (CURRENT_SPEED * pwmCal) + pwmStartRun
+				board.digital[5].write(pwmReverse)
 			
 
 		elif CURRENT_GEAR == 'P':
 			
-			board.digital[3].write(0.01)
+			board.digital[3].write(0.02)
 			
 
 		elif CURRENT_GEAR == 'N':
@@ -479,7 +500,11 @@ def decodeFromTaskQueue(task_data):
 	for i in range(1, lenght):
 		block_value += task_data[i]
 	updateCurrentValue(task_data[0], block_value)
+<<<<<<< HEAD
 	# print task_data[0],block_value
+=======
+	
+>>>>>>> master
 		
 
 
@@ -558,6 +583,20 @@ if __name__ == '__main__':
 	car_sys_cal_speed_driven_thread.start()
 	car_sys_motor_driven_thread.start()
 	car_sys_servo_driven_thread.start()
+<<<<<<< HEAD
+=======
+	
+	monitor_thread = threading.Thread(target = monitor)
+	monitor_thread.start()
+
+
+	# Append Thread to THREAD_POOL
+	# THREAD_POOL.append(car_sys_motor_driven_thread)
+	# THREAD_POOL.append(car_sys_servo_driven_thread)
+	# THREAD_POOL.append(command_socket_thread)
+	# THREAD_POOL.append(driver_control_socket_thread)
+
+>>>>>>> master
 
 class DeviceSocket(threading.Thread):
 
