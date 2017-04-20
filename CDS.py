@@ -103,11 +103,13 @@ class commandSocket(threading.Thread):
 
 		if auth_data == "-a PHONE":
 			PHONE_CMD = conn
+
 			threading.Thread(target=self.commandSocketReceiver, args=(conn, addr)).start()
 
 		elif auth_data == "-a SIMULATOR_SET" :
 			SIMULATOR_SET_CMD = conn
-			threading.Thread(target=self.commandSocketReceiver, args=(conn, addr)).start() ########################################add
+
+			threading.Thread(target=self.commandSocketReceiver, args=(conn, addr)).start()
 
 		else:
 			conn.close()
@@ -129,7 +131,24 @@ class commandSocket(threading.Thread):
 			CURRENT_WHEEL_ANGLES = 90
 			ACCELERATOR = 0
 			BRAKE = 0
-		
+
+"""
+Return Current Gear
+"""			
+def getCurrentGear() :
+	global CURRENT_GEAR 
+	return CURRENT_GEAR
+
+"""
+Return has Simset is connected 
+"""
+def getSimulatorStatus() :
+	global SIMULATOR_SET_DRIVER
+
+	if SIMULATOR_SET_DRIVER != None :
+		return "1"
+	else:	
+		return "0"
 
 """
 Driver Control Socket
@@ -148,22 +167,36 @@ def DriverControlSocket():
 			conn, addr = driver_control_sock.accept()
 			logging.debug( "Driver socket connect from %r", addr)
 			id_mess = conn.recv(1024)
-			#print "id_mess" + id_mess # add
 
 			if id_mess == "PHONE":
 				PHONE_DRIVER = DeviceSocket(conn, "PHONE")
-				PHONE_DRIVER.getEvent().set()
+				conn.send(getSimulatorStatus() )
+				conn.send(getCurrentGear() )
+
+
+				#Have SIMSET connect
+				if SIMULATOR_SET_DRIVER != None :
+					PHONE_DRIVER.getEvent().clear()
+		
+					
+				# No SIMSET connect
+				else:
+					CONTROL_MODE = 0
+					PHONE_DRIVER.getEvent().set()
+					
 				PHONE_DRIVER.start()
 
-				CONTROL_MODE = 0
 
 			elif id_mess == "SIMULATOR_SET":
 				SIMULATOR_SET_DRIVER = DeviceSocket(conn, "SIMULATOR_SET")	
+				conn.send(getSimulatorStatus() )
 
+				# No Phone connect
 				if PHONE_DRIVER == None:
 					SIMULATOR_SET_DRIVER.getEvent().set()
 					CONTROL_MODE = 1
 
+				# Have Phone connnect
 				else:
 					SIMULATOR_SET_DRIVER.getEvent().clear()
 
@@ -171,6 +204,7 @@ def DriverControlSocket():
 
 			else:
 				conn.close()
+
 	except Exception as e :
 		raise e
 
@@ -180,7 +214,7 @@ def command(conn, message):
 	if command == '-cg':
 		changeGear(message.split()[1] )
 
-	if command == '-cm':
+	elif command == '-cm':
 		changeControlmode(message.split()[1])
 
 
@@ -401,7 +435,8 @@ def changeGear(value):
 	if CURRENT_GEAR != value and CURRENT_SPEED == 0 :
 		CURRENT_GEAR = value
 		response_message = "-cg "+value
-		PHONE_CMD.send(response_message)
+		if PHONE_CMD != None:
+			PHONE_CMD.send(response_message)
 		print "Change gear to ", value
 
 def assignTask(head, value):
@@ -487,7 +522,9 @@ def monitor():
 		print 'acc', ACCELERATOR, 'brk', BRAKE, 'spd', CURRENT_SPEED, 'gear', CURRENT_GEAR, 'ang', CURRENT_WHEEL_ANGLES
 		time.sleep(2)
 if __name__ == '__main__':
-	print "Start Server !! "
+	import acii_text
+	print acii_text.l
+	print "Start "
 
 	# Event 
 	# phone_event = threading.Event()
@@ -511,21 +548,15 @@ if __name__ == '__main__':
 	car_sys_servo_driven_thread = threading.Thread(name="Car_System_Servo_Driven", target=ServoController)
 	# car_sys_gear_control_thread = threading.Thread("Car_System_Gear_Control", target=GeearController)
 
+	# car_sys_update_data_driven_thread.setDaemon(True)
+	# car_sys_cal_speed_driven_thread.setDaemon(True)
+	# car_sys_motor_driven_thread.setDaemon(True)
+	# car_sys_servo_driven_thread.setDaemon(True)
+
 	car_sys_update_data_driven_thread.start()
 	car_sys_cal_speed_driven_thread.start()
 	car_sys_motor_driven_thread.start()
 	car_sys_servo_driven_thread.start()
-	
-	# monitor_thread = threading.Thread(target = monitor)
-	# monitor_thread.start()
-
-
-	# Append Thread to THREAD_POOL
-	# THREAD_POOL.append(car_sys_motor_driven_thread)
-	# THREAD_POOL.append(car_sys_servo_driven_thread)
-	# THREAD_POOL.append(command_socket_thread)
-	# THREAD_POOL.append(driver_control_socket_thread)
-
 
 class DeviceSocket(threading.Thread):
 
@@ -534,12 +565,6 @@ class DeviceSocket(threading.Thread):
 		self._name = name
 		self.driver_sock = conn
 		self.driver_event = threading.Event()
-
-	def handleCommandSocket():
-		while True:
-			cmd = self.command_sock.recv(1024)
-			#print 'hdCMD' + cmd # add
-			commandRequest(command_sock, cmd)
 
 	def setDriverEvent(self, event):
 		self.driver_event = event
@@ -550,17 +575,11 @@ class DeviceSocket(threading.Thread):
 	def setCommandSocket(conn, id_code):
 		self.command_sock = conn, code
 
-	def commandSocket():
-		return self.command_sock
-
 	def setDriverSocket(conn):
 		self.driver_sock = conn
 
-	def driverSocket(self):
+	def getDriverSocket(self):
 		return self.driver_sock
-
-	def setId(self, Id):
-		self._Id = Id
 
 	def getId(self):
 		return self._Id
@@ -570,7 +589,10 @@ class DeviceSocket(threading.Thread):
 
 	def run(self):
 		print "starting with ", self._name
+
 		try:
+			self.setDaemon(True)
+
 			while True:
 				self.driver_event.wait()
 				raw_data = self.driver_sock.recv(1024)
