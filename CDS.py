@@ -347,7 +347,7 @@ Command Motor By CURRENT_SPEED
 """
 def MotorController():
 	global CURRENT_GEAR,CURRENT_SPEED
-	MaxSpeedF = 160.0
+	MaxSpeed = 160.0
 	
 
 	pwmStartRun = 0.2 #Motor begin run
