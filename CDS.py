@@ -8,10 +8,6 @@ from time import sleep
 from _global import *
 from _embeded import *
 
-from pyfirmata import Arduino, util
-from pyfirmata import INPUT, OUTPUT, PWM, SERVO
-
-
 # Command Server
 class commandSocket(threading.Thread):
 	command_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,6 +16,7 @@ class commandSocket(threading.Thread):
 
 	def __init__(self):
 		threading.Thread.__init__(self)
+		self.setDaemon(True)
 
 
 	def run(self):
@@ -67,6 +64,58 @@ class commandSocket(threading.Thread):
 			ACCELERATOR = 0
 			BRAKE = 0
 
+class DeviceSocket(threading.Thread):
+
+	def __init__(self, conn, device_name, event=threading.Event()):
+		threading.Thread.__init__(self)
+		self._device_name = device_name
+		self.driver_sock = conn
+		self.setDaemon(True)
+		self.driver_event = threading.Event()
+
+	def setDriverEvent(self, event):
+		self.driver_event = event
+
+	def getEvent(self):
+		return self.driver_event
+
+	def setCommandSocket(conn, id_code):
+		self.command_sock = conn, code
+
+	def setDriverSocket(conn):
+		self.driver_sock = conn
+
+	def getDriverSocket(self):
+		return self.driver_sock
+
+	def getId(self):
+		return self._Id
+
+	def getDeviceName(self):
+		return self._device_name
+
+	def run(self):
+		print self.getDeviceName(), "Start"
+
+		try:
+			while True:
+				self.driver_event.wait()
+				raw_data = self.driver_sock.recv(1024)
+				#logging.debug("Receive data from %r", self.getName())
+				#print 'self drive' + raw_data # add
+				decode(raw_data)
+				
+		except Exception as e:
+			if self.getDeviceName() == "PHONE":
+				PHONE_DRIVER = None ;
+				PHONE_CMD = None ; 
+			else:
+				SIMULATOR_SET_DRIVER = None ;
+				SIMULATOR_SET_CMD = None ;
+
+			print "Disconenct by", self.getDeviceName(), 
+			print e
+
 """
 Return Current Gear
 """			
@@ -104,6 +153,8 @@ def DriverControlSocket():
 			id_mess = conn.recv(1024)
 
 			if id_mess == "PHONE":
+				
+
 				PHONE_DRIVER = DeviceSocket(conn, "PHONE")
 				PHONE_CMD.send("-s "+getSimulatorStatus() )
 				PHONE_CMD.send("-cg "+getCurrentGear() )
@@ -118,7 +169,7 @@ def DriverControlSocket():
 				else:
 					CONTROL_MODE = 0
 					PHONE_DRIVER.getEvent().set()
-					
+
 				PHONE_DRIVER.start()
 
 
@@ -317,12 +368,10 @@ Command Motor By CURRENT_SPEED
 def MotorController():
 	global CURRENT_GEAR,CURRENT_SPEED
 	MaxSpeed = 160.0
-	
 
 	pwmStartRun = 0.2 #Motor begin run
 	pwmCal =  (1 - pwmStartRun)/MaxSpeed
 
-	
 	while True:
 		
 		if CURRENT_GEAR == 'D':
@@ -444,14 +493,31 @@ def getDataFromTask():
 		while not TASK_QUEUE.empty():
 		    decodeFromTaskQueue(TASK_QUEUE.get())
 
+def getPhoneClient():
+	global PHONE_CMD, PHONE_DRIVER
+
+	if (PHONE_DRIVER or PHONE_DRIVER) == None:
+		return False
+	else: 
+		return True
+
+def getSimClient():
+	global SIMULATOR_SET_DRIVER, SIMULATOR_SET_CMD
+
+	if (SIMULATOR_SET_DRIVER or SIMULATOR_SET_CMD) == None:
+		return False
+	else: 
+		return True
+
 def monitor():
 	global ACCELERATOR,BRAKE,CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES
 	while True:
 		print 'acc', ACCELERATOR, 'brk', BRAKE, 'spd', CURRENT_SPEED, 'gear', CURRENT_GEAR, 'ang', CURRENT_WHEEL_ANGLES
+		print 'Client', getPhoneClient(), getSimClient()
 		time.sleep(2)
+
 if __name__ == '__main__':
-	print acii_text
-	print "Start "
+
 
 
 	# Socket Part
@@ -468,7 +534,6 @@ if __name__ == '__main__':
 	car_sys_motor_driven_thread = threading.Thread(name="Car_System_Motor_Driven", target=MotorController)
 	car_sys_servo_driven_thread = threading.Thread(name="Car_System_Servo_Driven", target=ServoController)
 
-
 	car_sys_update_data_driven_thread.setDaemon(True)
 	car_sys_cal_speed_driven_thread.setDaemon(True)
 	car_sys_motor_driven_thread.setDaemon(True)
@@ -476,17 +541,16 @@ if __name__ == '__main__':
 
 	# car_sys_gear_control_thread = threading.Thread("Car_System_Gear_Control", target=GeearController)
 
-	# car_sys_update_data_driven_thread.setDaemon(True)
-	# car_sys_cal_speed_driven_thread.setDaemon(True)
-	# car_sys_motor_driven_thread.setDaemon(True)
-	# car_sys_servo_driven_thread.setDaemon(True)
-
-
-	
+	# Monitor thread  
 	monitor_thread = threading.Thread(target = monitor)
 	monitor_thread.setDaemon(True)
 
+
+	# Start System 
 	try:
+		print acii_text
+		print "Start "
+
 		command_socket_thread.start()
 		driver_control_socket_thread.start()
 
@@ -496,6 +560,7 @@ if __name__ == '__main__':
 		car_sys_servo_driven_thread.start()
 
 		monitor_thread.start()
+
 		while True:
 			inp = raw_input(">_")
 			if inp == "exit":
@@ -503,68 +568,10 @@ if __name__ == '__main__':
 			pass
 
 	except KeyboardInterrupt as e:
-		"Close by Keyboard Interrupt"
+		logging.debug("Close by Keyboard Interrupt")
+
 	except Exception as e:
-		"Close. . ."
-		raise e 
+		logging.debug("Close by Exception",e)
 
 
 
-
-
-
-	# Append Thread to THREAD_POOL
-	# THREAD_POOL.append(car_sys_motor_driven_thread)
-	# THREAD_POOL.append(car_sys_servo_driven_thread)
-	# THREAD_POOL.append(command_socket_thread)
-	# THREAD_POOL.append(driver_control_socket_thread)
-
-
-class DeviceSocket(threading.Thread):
-
-	def __init__(self, conn, name, event=threading.Event()):
-		threading.Thread.__init__(self)
-		self._name = name
-		self.driver_sock = conn
-		self.driver_event = threading.Event()
-
-	def setDriverEvent(self, event):
-		self.driver_event = event
-
-	def getEvent(self):
-		return self.driver_event
-
-	def setCommandSocket(conn, id_code):
-		self.command_sock = conn, code
-
-	def setDriverSocket(conn):
-		self.driver_sock = conn
-
-	def getDriverSocket(self):
-		return self.driver_sock
-
-	def getId(self):
-		return self._Id
-
-	def getName(self):
-		return self._name
-
-	def run(self):
-		print "starting with ", self._name
-
-		try:
-
-			while True:
-				self.driver_event.wait()
-				raw_data = self.driver_sock.recv(1024)
-				#logging.debug("Receive data from %r", self.getName())
-				#print 'self drive' + raw_data # add
-				decode(raw_data)
-				
-		except Exception as e:
-			if selg.getName() == "PHONE":
-				PHONE_DRIVER = None ;
-			else:
-				SIMULATOR_SET_DRIVER = None ;
-
-			print "Disconenct by", self.getName(), e

@@ -3,7 +3,7 @@ import threading
 import sys
 import data_test
 
-IP = "192.168.100.173"
+IP = "192.168.137.73"
 PORT1 = 7769
 PORT2 = 7789
 
