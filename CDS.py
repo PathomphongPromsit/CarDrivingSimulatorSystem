@@ -1,85 +1,18 @@
 # import server_pc 
 import socket 
-import Queue
 import threading
 import time
-import sets 
-import logging
+from time import sleep
 
-import sys
-import struct
+# Import global variable
+from _global import *
+from _embeded import *
 
 from pyfirmata import Arduino, util
 from pyfirmata import INPUT, OUTPUT, PWM, SERVO
-from time import sleep
-# from module import system
-import constant
-
-board = Arduino('/dev/ttyS0') #firmataCommunicate
-board.digital[3].mode = PWM #forward Pin
-board.digital[5].mode = PWM #revers Pin
-board.digital[12].mode = SERVO #servo Pin
-board.digital[12].write(100) # defult Degree
-
-SYSTEM_STATUS = 0 	#System status
 
 
-CURRENT_SPEED = 0	#Car Status
-CURRENT_GEAR = "N"
-CURRENT_WHEEL_ANGLES = 90
-
-
-"""
-"""
-ACCELERATOR = 0
-BRAKE = 0
-
-
-"""
-Static Value
-"""
-DEFALUT_SPEED = 0
-DEFALUT_GEAR = "N"
-
-"""
-Queue of order from data reciever
-"""
-TASK_QUEUE = Queue.Queue() 
-
-"""
-Phone Object socket
-"""
-PHONE_DRIVER = None
-PHONE_CMD = None
-"""
-Driving SIMULATOR set Object socket
-"""
-SIMULATOR_SET_DRIVER = None
-SIMULATOR_SET_CMD = None
-
-"""
-Current Driver Object socket 
-"""
-DRIVER = None
-
-""" 
-Determine 
-0 = PH Control
-1 = SIM Control
-None = No Client 
-"""
-CONTROL_MODE = None
-
-CLIENT_WHITELIST = sets.Set()
-
-HOST = constant.HOST
-
-"""
-Command Server
-"""
-
-logging.basicConfig(level=logging.DEBUG)
-
+# Command Server
 class commandSocket(threading.Thread):
 	command_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	command_sock.bind((HOST, 7769))
@@ -503,33 +436,6 @@ def decodeFromTaskQueue(task_data):
 	# print task_data[0],block_value
 
 
-
-
-# __header = ['a','b','t','g']
-# 	block_head = ""
-# 	block_value = ""
-
-# 	lenght = len(task_data)
-
-# 	for i in range(lenght):
-# 		if task_data[i] in __header  :
-# 			if block_head != "":
-# 				updateCurrentValue(block_head, block_value)
-				
-# 				block_head = task_data[i]
-# 				block_value = ""
-
-# 			else:
-# 				block_head = task_data[i]
-# 				block_value = ""	
-
-# 		else:
-# 			block_value += task_data[i]
-
-# 		if i == lenght-1 :
-# 			updateCurrentValue(block_head, block_value)
-# 			print block_head,block_value
-
 def getDataFromTask():
 
 	global TASK_QUEUE
@@ -544,8 +450,7 @@ def monitor():
 		print 'acc', ACCELERATOR, 'brk', BRAKE, 'spd', CURRENT_SPEED, 'gear', CURRENT_GEAR, 'ang', CURRENT_WHEEL_ANGLES
 		time.sleep(2)
 if __name__ == '__main__':
-	import acii_text
-	print acii_text.l
+	print acii_text
 	print "Start "
 
 	# Event 
@@ -568,6 +473,7 @@ if __name__ == '__main__':
 	car_sys_cal_speed_driven_thread = threading.Thread(name = "Car_System_CalSpeed_Driven", target =CurrentSpeedControl)
 	car_sys_motor_driven_thread = threading.Thread(name="Car_System_Motor_Driven", target=MotorController)
 	car_sys_servo_driven_thread = threading.Thread(name="Car_System_Servo_Driven", target=ServoController)
+
 	# car_sys_gear_control_thread = threading.Thread("Car_System_Gear_Control", target=GeearController)
 
 	# car_sys_update_data_driven_thread.setDaemon(True)
