@@ -105,12 +105,12 @@ class commandSocket(threading.Thread):
 			PHONE_CMD = conn
 			new_thread = threading.Thread(target=self.commandSocketReceiver, args=(conn, addr))
 
-			threading.Thread(target=self.commandSocketReceiver, args=(conn, addr)).start()
 			new_thread.start()
+
 		elif auth_data == "-a SIMULATOR_SET" :
 			SIMULATOR_SET_CMD = conn
 
-			newthread = threading.Thread(target=self.commandSocketReceiver, args=(conn, addr))
+			new_thread = threading.Thread(target=self.commandSocketReceiver, args=(conn, addr))
 			new_thread.start()
 
 		else:
@@ -172,8 +172,8 @@ def DriverControlSocket():
 
 			if id_mess == "PHONE":
 				PHONE_DRIVER = DeviceSocket(conn, "PHONE")
-				conn.send(getSimulatorStatus() )
-				conn.send(getCurrentGear() )
+				PHONE_CMD.send("-s "+getSimulatorStatus() )
+				PHONE_CMD.send("-cg "+getCurrentGear() )
 
 
 				#Have SIMSET connect
@@ -191,7 +191,7 @@ def DriverControlSocket():
 
 			elif id_mess == "SIMULATOR_SET":
 				SIMULATOR_SET_DRIVER = DeviceSocket(conn, "SIMULATOR_SET")	
-				conn.send(getSimulatorStatus() )
+				PHONE_CMD.send("-s "+getSimulatorStatus() )
 
 				# No Phone connect
 				if PHONE_DRIVER == None:
@@ -241,6 +241,7 @@ def changeControlmode(cmd):
 		print "Change control mode to", cmd
 
 	else :
+
 		print "Control mode not change"
 
 	
@@ -383,7 +384,7 @@ Command Motor By CURRENT_SPEED
 """
 def MotorController():
 	global CURRENT_GEAR,CURRENT_SPEED
-	MaxSpeedF = 160.0
+	MaxSpeed = 160.0
 	
 
 	pwmStartRun = 0.2 #Motor begin run
@@ -500,12 +501,8 @@ def decodeFromTaskQueue(task_data):
 	for i in range(1, lenght):
 		block_value += task_data[i]
 	updateCurrentValue(task_data[0], block_value)
-<<<<<<< HEAD
 	# print task_data[0],block_value
-=======
-	
->>>>>>> master
-		
+
 
 
 
@@ -583,8 +580,6 @@ if __name__ == '__main__':
 	car_sys_cal_speed_driven_thread.start()
 	car_sys_motor_driven_thread.start()
 	car_sys_servo_driven_thread.start()
-<<<<<<< HEAD
-=======
 	
 	monitor_thread = threading.Thread(target = monitor)
 	monitor_thread.start()
@@ -596,7 +591,6 @@ if __name__ == '__main__':
 	# THREAD_POOL.append(command_socket_thread)
 	# THREAD_POOL.append(driver_control_socket_thread)
 
->>>>>>> master
 
 class DeviceSocket(threading.Thread):
 
@@ -640,4 +634,9 @@ class DeviceSocket(threading.Thread):
 				decode(raw_data)
 				
 		except Exception as e:
+			if selg.getName() == "PHONE":
+				PHONE_DRIVER = None ;
+			else:
+				SIMULATOR_SET_DRIVER = None ;
+
 			print "Disconenct by", self.getName(), e
