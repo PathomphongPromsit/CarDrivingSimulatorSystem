@@ -497,9 +497,14 @@ if __name__ == '__main__':
 
 		monitor_thread.start()
 		while True:
+			inp = raw_input(">_")
+			if inp == "exit":
+				raise Exception
 			pass
 
 	except KeyboardInterrupt as e:
+		"Close by Keyboard Interrupt"
+	except Exception as e:
 		"Close. . ."
 		raise e 
 
