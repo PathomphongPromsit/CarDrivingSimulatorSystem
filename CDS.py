@@ -453,9 +453,6 @@ if __name__ == '__main__':
 	print acii_text
 	print "Start "
 
-	# Event 
-	# phone_event = threading.Event()
-	# SIM_event = threading.Event()
 
 	# Socket Part
 	command_socket_thread = commandSocket()
@@ -465,14 +462,17 @@ if __name__ == '__main__':
 	driver_control_socket_thread = threading.Thread(name="Driver_Control_Socket_Thread", target=DriverControlSocket)
 	driver_control_socket_thread.setDaemon(True)
 
-	command_socket_thread.start()
-	driver_control_socket_thread.start()
-
 	# Car System Part
 	car_sys_update_data_driven_thread = threading.Thread(name = "Car_System_UpdateData_Driven", target=getDataFromTask)
 	car_sys_cal_speed_driven_thread = threading.Thread(name = "Car_System_CalSpeed_Driven", target =CurrentSpeedControl)
 	car_sys_motor_driven_thread = threading.Thread(name="Car_System_Motor_Driven", target=MotorController)
 	car_sys_servo_driven_thread = threading.Thread(name="Car_System_Servo_Driven", target=ServoController)
+
+
+	car_sys_update_data_driven_thread.setDaemon(True)
+	car_sys_cal_speed_driven_thread.setDaemon(True)
+	car_sys_motor_driven_thread.setDaemon(True)
+	car_sys_servo_driven_thread.setDaemon(True)
 
 	# car_sys_gear_control_thread = threading.Thread("Car_System_Gear_Control", target=GeearController)
 
@@ -481,13 +481,31 @@ if __name__ == '__main__':
 	# car_sys_motor_driven_thread.setDaemon(True)
 	# car_sys_servo_driven_thread.setDaemon(True)
 
-	car_sys_update_data_driven_thread.start()
-	car_sys_cal_speed_driven_thread.start()
-	car_sys_motor_driven_thread.start()
-	car_sys_servo_driven_thread.start()
+
 	
 	monitor_thread = threading.Thread(target = monitor)
-	monitor_thread.start()
+	monitor_thread.setDaemon(True)
+
+	try:
+		command_socket_thread.start()
+		driver_control_socket_thread.start()
+
+		car_sys_update_data_driven_thread.start()
+		car_sys_cal_speed_driven_thread.start()
+		car_sys_motor_driven_thread.start()
+		car_sys_servo_driven_thread.start()
+
+		monitor_thread.start()
+		while True:
+			pass
+
+	except KeyboardInterrupt as e:
+		"Close. . ."
+		raise e 
+
+
+
+
 
 
 	# Append Thread to THREAD_POOL
