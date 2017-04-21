@@ -260,37 +260,36 @@ def Driving():
 	else:
 		CURRENT_SPEED = DEFALUT_SPEED 
 
+
+def checkIntToStr(arg):
+	try:
+		return int(arg)
+	except Exception as e:
+		return False
 """
 Set Current Speed 
 """
 def updateCurrentValue (in_head,in_data):
+
+	try: 
+		data = int(in_data)
+
+		if in_head == 'a': 					#update current accelerator
+			global ACCELERATOR
+			ACCELERATOR = data 		
+
+		elif in_head == 'b': 					#update current brake
+			global BRAKE
+			BRAKE = data
+		
+		elif in_head == 't': 					#update current degree
+			global CURRENT_WHEEL_ANGLES
+			CURRENT_WHEEL_ANGLES = data 
+
+	except :
+		pass
+
 	
-	if in_head == 'a': 						#update current accelerator
-		accelerator = in_data
-		
-		accelerator = int(in_data)
-
-		global ACCELERATOR
-		ACCELERATOR = accelerator 
-
-
-	elif in_head == 'b': 					#update current brake
-		brake = int(in_data)
-		
-		global BRAKE
-		BRAKE = brake
-
-	elif in_head == 'g': 					#update current gear
-		gear = str(in_data)
-		
-		global CURRENT_GEAR
-		CURRENT_GEAR = gear
-	
-	elif in_head == 't': 					#update current degree
-		angles = int(in_data)
-		
-		global CURRENT_WHEEL_ANGLES
-		CURRENT_WHEEL_ANGLES = angles
 
 def CurrentSpeedControl():
 	global CURRENT_SPEED,ACCELERATOR,BRAKE,CURRENT_GEAR
