@@ -13,7 +13,7 @@ board.digital[3].mode = PWM #forward Pin
 
 while True:
 	inp = raw_input("_>")
-			
+	inp = float(inp)
 	board.digital[3].write(inp)
 		
 
