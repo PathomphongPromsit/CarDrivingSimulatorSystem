@@ -38,28 +38,36 @@ PORT2 = 7789
 
 def readWheell():
 	global DRIVER_SERVER, CURRENT_WHEEL_ANGLES
-	minAnalog = 0
-	maxAnalog = 1
-	rangeAnalog = maxAnalog - minAnalog
+	minAnalog = 0.5
+	maxAnalog = 0.97
+	midAnalog = 0.8
+	deltaA = midAnalog - minAnalog
+	deltaB = maxAnalog - midAnalog
 	while True:
 		angle = whell.read()
+		
+		
 		if not angle:
 			angle = 90
 		else:
-			angle = ((whell.read()-minAnalog)/rangeAnalog)*180  # Read % value from pin 0
-			angle = int(angle) 
-		
-		if angle != CURRENT_WHEEL_ANGLES:
-			if angle <=15 and CURRENT_WHEEL_ANGLE != 0:						#set 0
+			if angle < minAnalog:
 				CURRENT_WHEEL_ANGLES = 0
-				data = 't' + str(CURRENT_WHEEL_ANGLES)
-				print data
-				DRIVER_SERVER.send(data)
-			elif angle >15:
+				angle = 0
+			elif angle > maxAnalog:
+				CURRENT_WHEEL_ANGLES = 180
+				angle =180
+			elif angle >= minAnalog and angle < midAnalog:  #left
+				angle = ((angle -minAnalog)/deltaA)*90
+				angle = int(angle)
+			elif angle >= midAnalog and angle <= maxAnalog:  #right
+				angle = 90+((angle- midAnalog)/deltaB)*90
+				angle = int(angle)
+		if angle != CURRENT_WHEEL_ANGLES:
 				CURRENT_WHEEL_ANGLES = angle
 				data = 't' + str(CURRENT_WHEEL_ANGLES)
 				print data
 				DRIVER_SERVER.send(data)
+		time.sleep(0.5)
 
 
 			
@@ -69,55 +77,57 @@ def readWheell():
 def readAccelerator():
 	global DRIVER_SERVER, ACCELERATOR
 	minAnalog = 0.05
-	maxAnalog = 0.095
+	maxAnalog = 0.09
 	rangeAnalog = maxAnalog - minAnalog
 	while True:
 		acc = accelerator.read()  # Read the value from pin 2
 		if not acc:  # Set a default if no value read
 			acc = 0
+			
 		else:
-			acc = ((accelerator.read()-minAnalog)/rangeAnalog)*100  # Read % value from pin 1
-			acc = int(acc) 
+			if acc < minAnalog:
+					acc = 0
+					
+			elif acc > maxAnalog
+				acc = 100
+			else:
+				acc = ((acc - minAnalog)/rangeAnalog)*100  
+				acc = int(acc) 
 		
 		if acc != ACCELERATOR:
-			if acc <=15 and ACCELERATOR !=0: 							#set 0
-				ACCELERATOR = 0
+				ACCELERATOR = acc					
 				data = 'a' + str(ACCELERATOR)
 				print data
 				DRIVER_SERVER.send(data)
-			elif acc >15:
-
-				ACCELERATOR = acc
-				data = 'a' + str(ACCELERATOR)
-				print data
-				DRIVER_SERVER.send(data)
+		time.sleep(0.5)	
 		 
 	
 def readBrake():
 	global DRIVER_SERVER, BRAKE
-	minAnalog = 0.1
-	maxAnalog = 0.18
+	minAnalog = 0.52
+	maxAnalog = 0.63
 	rangeAnalog = maxAnalog - minAnalog
 	while True:
 		brk = brake.read()
 		if not brk:
 			brk = 0
 		else:
-
-			brk = ((brake.read()-minAnalog)/rangeAnalog) *100 # Read % value from pin 2
-			brk = int(brk) 
+			if brk < minAnalog:
+					brk = 0
+					
+			elif brk > maxAnalog:
+				brk = 100
+				
+			else:
+				brk = ((brk - minAnalog)/rangeAnalog)*100  # Read % value from pin 1
+				brk = int(brk) 
 		
 		if brk != BRAKE:
-			if brk <= 15 and BRAKE != 0:
-				BRAKE = 0
+				BRAKE = brk					
 				data = 'b' + str(BRAKE)
 				print data
 				DRIVER_SERVER.send(data)
-			elif brk >15:
-				BRAKE = brk
-				data = 'b' + str(BRAKE)
-				print data
-				DRIVER_SERVER.send(data)
+		time.sleep(0.5)
 
 def readGear():	# Read if the button has been pressed.
 	global COMMAND_SERVER, CURRENT_GEAR
@@ -165,7 +175,7 @@ def readGear():	# Read if the button has been pressed.
 # 		print raw_data
 
 if __name__ == '__main__':
-	print "Start Server !! "
+	print "Start SIM !! "
 	# global IP, PORT1, PORT2, auth_message
 
 	board.digital[13].write(1)
@@ -197,18 +207,18 @@ if __name__ == '__main__':
 	time.sleep(1)
 
 	#read and sent
-	Read_Gear_thread = threading.Thread(name = "Read_Gear", target =readGear)
+	Read_Gear_thread = threading.Thread(name = "Read_Gear", target = readGear)
 	Read_Accelerator_thread = threading.Thread(name = "Read_Accelerator", target = readAccelerator)
-	Read_Brake_thread = threading.Thread(name = "Read_Brake", target=readBrake)
-	# Read_Wheell_thread = threading.Thread(name = "Read_Wheel", target =readWheell)
+	Read_Brake_thread = threading.Thread(name = "Read_Brake", target= readBrake)
+	Read_Wheell_thread = threading.Thread(name = "Read_Wheel", target = readWheell)
 	
 	
 	
 	Read_Gear_thread.start()
 	Read_Accelerator_thread.start()
 	Read_Brake_thread.start()
-	# Read_Wheell_thread.start()
-	
+	Read_Wheell_thread.start()
+
 	# #monitor
 	# Monitor_Driver_thread = threading.Thread(target = driverSocketResponse)
 	# Monitor_Command_thread = threading.Thread(target = commandSocketResponse)
