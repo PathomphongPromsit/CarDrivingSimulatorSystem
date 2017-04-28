@@ -12,7 +12,7 @@ from _embeded import *
 class commandSocket(threading.Thread):
 	command_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	command_sock.bind((HOST, 7769))
-	command_sock.listen(3)
+	command_sock.listen(2)
 
 	def __init__(self):
 		threading.Thread.__init__(self)
@@ -27,7 +27,6 @@ class commandSocket(threading.Thread):
 
 	def commandSocketRegistrar(self, conn, addr):
 		global PHONE_CMD, SIMULATOR_SET_CMD
-		conn.send("-sq Who're you")
 		auth_data = conn.recv(1024)
 		#print 'auth_data' + auth_data # add
 
@@ -106,15 +105,23 @@ class DeviceSocket(threading.Thread):
 				decode(raw_data)
 				
 		except Exception as e:
+			lock = threading.Lock()
+
+			lock.acquire()
 			if self.getDeviceName() == "PHONE":
+				global PHONE_DRIVER, PHONE_CMD
+				PHONE_CMD.close()
+				PHONE_DRIVER.getDriverSocket.close()
 				PHONE_DRIVER = None ;
 				PHONE_CMD = None ; 
 			else:
+				global SIMULATOR_SET_CMD, SIMULATOR_SET_DRIVER
 				SIMULATOR_SET_DRIVER = None ;
 				SIMULATOR_SET_CMD = None ;
 
 			print "Disconenct by", self.getDeviceName(), 
 			print e
+			lock.release()
 
 """
 Return Current Gear
@@ -143,7 +150,7 @@ def DriverControlSocket():
 
 	driver_control_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	driver_control_sock.bind((HOST, 7789))
-	driver_control_sock.listen(3)
+	driver_control_sock.listen(2)
 
 	try :
 
@@ -153,18 +160,22 @@ def DriverControlSocket():
 			id_mess = conn.recv(1024)
 
 			if id_mess == "PHONE":
-				
-
+								
 				PHONE_DRIVER = DeviceSocket(conn, "PHONE")
-				PHONE_CMD.send("-s "+getSimulatorStatus() )
-				PHONE_CMD.send("-cg "+getCurrentGear() )
+				try:
+					PHONE_CMD.send("-s "+getSimulatorStatus() )
+					PHONE_CMD.send("-cg "+getCurrentGear() )
+				except Exception as e:
+
+					print "Driver control cant send to command socket", e
 
 
 				#Have SIMSET connect
 				if SIMULATOR_SET_DRIVER != None :
+					PHONE_CMD.send("-s "+getSimulatorStatus() )
+					PHONE_CMD.send("-cg "+getCurrentGear() )
 					PHONE_DRIVER.getEvent().clear()
 		
-					
 				# No SIMSET connect
 				else:
 					CONTROL_MODE = 0
@@ -175,7 +186,6 @@ def DriverControlSocket():
 
 			elif id_mess == "SIMULATOR_SET":
 				SIMULATOR_SET_DRIVER = DeviceSocket(conn, "SIMULATOR_SET")	
-				PHONE_CMD.send("-s "+getSimulatorStatus() )
 
 				# No Phone connect
 				if PHONE_DRIVER == None:
@@ -184,6 +194,9 @@ def DriverControlSocket():
 
 				# Have Phone connnect
 				else:
+					PHONE_CMD.send("-s "+getSimulatorStatus() )
+					PHONE_CMD.send("-cg "+getCurrentGear() )
+
 					SIMULATOR_SET_DRIVER.getEvent().clear()
 
 				SIMULATOR_SET_DRIVER.start()
@@ -283,84 +296,79 @@ def CurrentSpeedControl():
 		if CURRENT_GEAR == 'D':
 			defaultSpeed = 5.0
 			forwardMaxSpeed = 160.0
-			maxAcc = 8.21 #0-100 12.17sec
-			maxBrk = 14.28 # 100-0 7sec
-			decreaseSpeed = 0.5/2000		#0.5/sec
-			
-			accelerator_to_speed = ((ACCELERATOR/100)*maxAcc)/2000 	 
-			brake_to_speed = ((BRAKE/100)*maxBrk)/2000 	
+			timeDivide = 200.0
+			maxAcc = 8.21 #0-100 12.17sec  +8.21km/s
+			maxBrk = 14.28 # 100-0 7sec -14.28km/s
+			decreaseSpeed = 3.0/timeDivide		#-3km/s
 
-			maxSpeedCurrentAcc = (ACCELERATOR/100)*forwardMaxSpeed
+			maxSpeedCurrentAcc = (ACCELERATOR/100.0)*forwardMaxSpeed
+
+			brake_to_speed = ((BRAKE/100.0)*maxBrk)/timeDivide 
 			
-			
-			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: 	#unAcc+brake
-				
-				CURRENT_SPEED = 0
-				
-			elif CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE == 0:	#unAcc+unBrake
-				CURRENT_SPEED = defaultSpeed
-			
-			
+			if CURRENT_SPEED <= defaultSpeed and ACCELERATOR == 0 and BRAKE == 0: 
+				CURRENT_SPEED = CURRENT_SPEED + decreaseSpeed
+					
 			else:
 				
-				spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
-				
-				if spd >= maxSpeedCurrentAcc:
-					CURRENT_SPEED = maxSpeedCurrentAcc
-				elif spd >= forwardMaxSpeed:
+				if CURRENT_SPEED < maxSpeedCurrentAcc:
+					accelerator_to_speed = ((ACCELERATOR/100.0)*maxAcc)/timeDivide
+				elif CURRENT_SPEED >= maxSpeedCurrentAcc:
+					accelerator_to_speed = 0.0
+
+				if ACCELERATOR != 0 or BRAKE != 0:
+					spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed 
+				else:
+					spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
+
+				if spd >= forwardMaxSpeed:
 					CURRENT_SPEED = forwardMaxSpeed
-				elif spd <= defaultSpeed and BRAKE == 0:
-					CURRENT_SPEED = defaultSpeed
-				elif spd <= defaultSpeed and BRAKE != 0: #add
-					CURRENT_SPEED = 0
 				elif spd < 0:
 					CURRENT_SPEED = 0
+				elif spd <= defaultSpeed and BRAKE == 0:
+					CURRENT_SPEED = defaultSpeed
 				else:
 					CURRENT_SPEED = spd
 			
 		elif CURRENT_GEAR == 'R':
 			defaultSpeed = 5.0
-			reverseMaxSpeed = 40.0
-			maxAcc = 8.21 #0-100 12.17sec
-			maxBrk = 14.28 # 100-0 7sec
-			decreaseSpeed = 0.5/2000 		#0.5/sec
+			reverseMaxSpeed = 20.0					
+			timeDivide = 200.0
+			maxAcc = 8.21 #0-100 12.17sec  +8.21km/s
+			maxBrk = 14.28 # 100-0 7sec -14.28km/s
+			decreaseSpeed = 3.0/timeDivide		#-3km/s
+
+			maxSpeedCurrentAcc = (ACCELERATOR/100.0)*reverseMaxSpeed
+
+			brake_to_speed = ((BRAKE/100.0)*maxBrk)/timeDivide 
 			
-			accelerator_to_speed = ((ACCELERATOR/100)*maxAcc)/2000 	 
-			brake_to_speed = ((BRAKE/100)*maxBrk)/2000				
-			
-			maxSpeedCurrentAcc = (ACCELERATOR/100)*reverseMaxSpeed
-			
-			if CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE != 0: #unAcc+brake
-				
-				CURRENT_SPEED = 0
-				
-			elif CURRENT_SPEED == 0 and ACCELERATOR == 0 and BRAKE == 0:#unAcc+unBrake
-				CURRENT_SPEED = defaultSpeed
-			
-			
+			if CURRENT_SPEED <= defaultSpeed and ACCELERATOR == 0 and BRAKE == 0: 
+				CURRENT_SPEED = CURRENT_SPEED + decreaseSpeed
+					
 			else:
 				
-				spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
-				if spd >= maxSpeedCurrentAcc:
-					CURRENT_SPEED = maxSpeedCurrentAcc
+				if CURRENT_SPEED < maxSpeedCurrentAcc:
+					accelerator_to_speed = ((ACCELERATOR/100.0)*maxAcc)/timeDivide
+				elif CURRENT_SPEED >= maxSpeedCurrentAcc:
+					accelerator_to_speed = 0.0
+				
+				if ACCELERATOR != 0 or BRAKE != 0:
+					spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed 
+				else:
+					spd = CURRENT_SPEED + accelerator_to_speed - brake_to_speed - decreaseSpeed
 
-				elif spd >= reverseMaxSpeed:
+				if spd >= reverseMaxSpeed:
 					CURRENT_SPEED = reverseMaxSpeed
-				elif spd <= defaultSpeed and BRAKE == 0:
-					CURRENT_SPEED = defaultSpeed
-				elif spd <= defaultSpeed and BRAKE != 0: #add
-					CURRENT_SPEED = 0
 				elif spd < 0:
 					CURRENT_SPEED = 0
+				elif spd <= defaultSpeed and BRAKE == 0:
+					CURRENT_SPEED = defaultSpeed
 				else:
 					CURRENT_SPEED = spd
-		
-		elif CURRENT_GEAR == 'P':
-			
+		else:
 			CURRENT_SPEED = 0
-		elif CURRENT_GEAR == 'N':
-			
-			CURRENT_SPEED = 0
+
+		# # time.sleep(0.1)
+
 
 """
 Command Motor By CURRENT_SPEED
@@ -369,24 +377,26 @@ def MotorController():
 	global CURRENT_GEAR,CURRENT_SPEED
 	MaxSpeed = 160.0
 
-	pwmStartRun = 0.2 #Motor begin run
-	pwmCal =  (1 - pwmStartRun)/MaxSpeed
+	pwmStartRun = 0.20 #Motor begin run
+	pwmMaxRun = 0.60
+	pwmRange = pwmMaxRun - pwmStartRun
 
 	while True:
+		t1 = time.time()
 		
 		if CURRENT_GEAR == 'D':
 			if CURRENT_SPEED == 0:
 				board.digital[3].write(0)
 			else:
 
-				pwmForword = (CURRENT_SPEED * pwmCal) + pwmStartRun
+				pwmForword = (CURRENT_SPEED/MaxSpeed * pwmRange) + pwmStartRun
 				board.digital[3].write(pwmForword)
 
 		elif CURRENT_GEAR == 'R':
 			if CURRENT_SPEED == 0:
 				board.digital[5].write(0)
 			else:
-				pwmReverse= (CURRENT_SPEED * pwmCal) + pwmStartRun
+				pwmReverse= (CURRENT_SPEED/MaxSpeed * pwmRange) + pwmStartRun
 				board.digital[5].write(pwmReverse)
 			
 
@@ -398,6 +408,10 @@ def MotorController():
 		elif CURRENT_GEAR == 'N':
 
 			board.digital[3].write(0)
+		#t2 = time.time()
+
+		# print "time used ", t2-t1
+
 """
 Command Servo By CURRENT_WHEEL_ANGLES
 """
@@ -460,7 +474,7 @@ def decode(income_data):
 	for i in range(lenght):
 		if income_data[i] in __header  :
 			if block_head != "":
-				assignTask(block_head, block_value)
+				updateCurrentValue(block_head, block_value)
 				
 				block_head = income_data[i]
 				block_value = ""
@@ -473,7 +487,7 @@ def decode(income_data):
 			block_value += income_data[i]
 
 		if i == lenght-1 :
-			assignTask(block_head, block_value)
+			updateCurrentValue(block_head, block_value)
 			
 
 def decodeFromTaskQueue(task_data): 
@@ -493,14 +507,16 @@ def getDataFromTask():
 		while not TASK_QUEUE.empty():
 		    decodeFromTaskQueue(TASK_QUEUE.get())
 
+# Get Current Phone device is connecting 
 def getPhoneClient():
 	global PHONE_CMD, PHONE_DRIVER
 
-	if (PHONE_DRIVER or PHONE_DRIVER) == None:
+	if (PHONE_DRIVER or PHONE_CMD) == None:
 		return False
 	else: 
 		return True
 
+# TODO: See current Simulator is connecting 
 def getSimClient():
 	global SIMULATOR_SET_DRIVER, SIMULATOR_SET_CMD
 
@@ -513,7 +529,9 @@ def monitor():
 	global ACCELERATOR,BRAKE,CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES
 	while True:
 		print 'acc', ACCELERATOR, 'brk', BRAKE, 'spd', CURRENT_SPEED, 'gear', CURRENT_GEAR, 'ang', CURRENT_WHEEL_ANGLES
-		print 'Client', getPhoneClient(), getSimClient()
+		print "Control mode: ",CONTROL_MODE
+		print 'Client', PHONE_CMD, PHONE_DRIVER, SIMULATOR_SET_CMD, SIMULATOR_SET_DRIVER
+		print "\n"
 		time.sleep(2)
 
 if __name__ == '__main__':
@@ -529,12 +547,13 @@ if __name__ == '__main__':
 	driver_control_socket_thread.setDaemon(True)
 
 	# Car System Part
-	car_sys_update_data_driven_thread = threading.Thread(name = "Car_System_UpdateData_Driven", target=getDataFromTask)
+	# car_sys_update_data_driven_thread = threading.Thread(name = "Car_System_UpdateData_Driven", target=getDataFromTask)
+	# car_sys_update_data_driven_thread.setDaemon(True)
+
 	car_sys_cal_speed_driven_thread = threading.Thread(name = "Car_System_CalSpeed_Driven", target =CurrentSpeedControl)
 	car_sys_motor_driven_thread = threading.Thread(name="Car_System_Motor_Driven", target=MotorController)
 	car_sys_servo_driven_thread = threading.Thread(name="Car_System_Servo_Driven", target=ServoController)
 
-	car_sys_update_data_driven_thread.setDaemon(True)
 	car_sys_cal_speed_driven_thread.setDaemon(True)
 	car_sys_motor_driven_thread.setDaemon(True)
 	car_sys_servo_driven_thread.setDaemon(True)
@@ -554,7 +573,7 @@ if __name__ == '__main__':
 		command_socket_thread.start()
 		driver_control_socket_thread.start()
 
-		car_sys_update_data_driven_thread.start()
+		# car_sys_update_data_driven_thread.start()
 		car_sys_cal_speed_driven_thread.start()
 		car_sys_motor_driven_thread.start()
 		car_sys_servo_driven_thread.start()
