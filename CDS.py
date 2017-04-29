@@ -432,16 +432,6 @@ def DriverController():
 			SIMULATOR_SET.stop()
 		PHONE.start()
 
-def SystemCommand(command):
-	global SYSTEM_STATUS
-	if command == "shutdown":
-		SYSTEM_STATUS = 0
-
-	elif command == "start":
-		SYSTEM_STATUS =1
-	else:
-		pass
-
 """
 @param
 String head
