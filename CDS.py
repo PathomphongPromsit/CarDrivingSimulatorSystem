@@ -208,13 +208,28 @@ def DriverControlSocket():
 		raise e
 
 def command(conn, message):
-	command = message.split()[0] 
+	message_block = message.split()
 
-	if command == '-cg':
-		changeGear(message.split()[1] )
+	if message_block[0] == '-cg':
+		changeGear(message_block[1] )
 
-	elif command == '-cm':
-		changeControlmode(message.split()[1])
+	elif message_block[0] == '-cm':
+		changeControlmode(message_block[1] )
+
+	elif message_block[0] == '-cc':
+		global CAM
+
+		try :
+			# print message_block[1]
+			CAM += float(message_block[1]) 
+			if abs(CAM) > 1:
+				print CAM
+				CAM = 0
+
+		except :
+			pass
+
+		# Todo recieve value from camera changed 
 
 
 def changeControlmode(cmd):

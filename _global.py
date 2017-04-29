@@ -7,6 +7,8 @@ CURRENT_WHEEL_ANGLES = 90
 ACCELERATOR = 0
 BRAKE = 0
 
+CAM = 0
+
 # Static Value
 DEFALUT_SPEED = 0
 DEFALUT_GEAR = "N"
@@ -37,12 +39,13 @@ None = No Client
 CONTROL_MODE = None
 
 # Host Ip
-HOST = "192.168.137.73"
+HOST = "192.168.100.1"
 
 
 # Set Logger
 import logging
 logging.basicConfig(level=logging.DEBUG)
+
 
 
                                                                                                                             
