@@ -6,7 +6,6 @@ from time import sleep
 
 # Import global variable
 from _global import *
-from _embeded import *
 
 # Command Server
 class commandSocket(threading.Thread):
@@ -256,28 +255,7 @@ def changeControlmode(cmd):
 
 		print "Control mode not change"
 
-	
-def socketResponse(conn, message):
-	try:
-		conn.send(message)
-	except Exception as e:
-		logging.debug("Command response Failed %r",e)
 
-
-		
-def Driving():
-	if DRIVER != None :
-		new_thread = threading.Thread(name="Driver", target=MotorControl)
-		THREAD_POOL.append(new_thread)
-	else:
-		CURRENT_SPEED = DEFALUT_SPEED 
-
-
-def checkIntToStr(arg):
-	try:
-		return int(arg)
-	except Exception as e:
-		return False
 """
 Set Current Speed 
 """
@@ -439,14 +417,6 @@ def ServoController():
 		carDegree = left+(((right-left)*CURRENT_WHEEL_ANGLES)/180)		#cal degree servo
 		board.digital[12].write(carDegree)	
 
-
-def DriverController():
-	global CONTROL_MODE, DRIVER
-	if CONTROL_MODE == 1:
-		if DRIVER != None and SIMULATOR_SET.is_connect :
-			SIMULATOR_SET.stop()
-		PHONE.start()
-
 """
 @param
 String head
@@ -461,13 +431,6 @@ def changeGear(value):
 		if PHONE_CMD != None:
 			PHONE_CMD.send(response_message)
 		print "Change gear to ", value
-
-def assignTask(head, value):
-	control_head = ['a','t','b']
-	if head in control_head:
-		TASK_QUEUE.put(head+value)
-	# elif head == 'g' :
-	# 	changeGear(value)
 
 def decode(income_data):
 	__header = ['a','b','t','g']
@@ -551,19 +514,8 @@ if __name__ == '__main__':
 	driver_control_socket_thread = threading.Thread(name="Driver_Control_Socket_Thread", target=DriverControlSocket)
 	driver_control_socket_thread.setDaemon(True)
 
-	# Car System Part
-	# car_sys_update_data_driven_thread = threading.Thread(name = "Car_System_UpdateData_Driven", target=getDataFromTask)
-	# car_sys_update_data_driven_thread.setDaemon(True)
-
 	car_sys_cal_speed_driven_thread = threading.Thread(name = "Car_System_CalSpeed_Driven", target =CurrentSpeedControl)
-	car_sys_motor_driven_thread = threading.Thread(name="Car_System_Motor_Driven", target=MotorController)
-	car_sys_servo_driven_thread = threading.Thread(name="Car_System_Servo_Driven", target=ServoController)
-
 	car_sys_cal_speed_driven_thread.setDaemon(True)
-	car_sys_motor_driven_thread.setDaemon(True)
-	car_sys_servo_driven_thread.setDaemon(True)
-
-	# car_sys_gear_control_thread = threading.Thread("Car_System_Gear_Control", target=GeearController)
 
 	# Monitor thread  
 	monitor_thread = threading.Thread(target = monitor)
@@ -577,11 +529,23 @@ if __name__ == '__main__':
 
 		command_socket_thread.start()
 		driver_control_socket_thread.start()
-
-		# car_sys_update_data_driven_thread.start()
 		car_sys_cal_speed_driven_thread.start()
-		car_sys_motor_driven_thread.start()
-		car_sys_servo_driven_thread.start()
+
+		try :
+			from _embeded import *
+
+			car_sys_motor_driven_thread = threading.Thread(name="Car_System_Motor_Driven", target=MotorController)
+			car_sys_servo_driven_thread = threading.Thread(name="Car_System_Servo_Driven", target=ServoController)
+				
+			car_sys_motor_driven_thread.setDaemon(True)
+			car_sys_servo_driven_thread.setDaemon(True)
+
+			car_sys_motor_driven_thread.start()
+			car_sys_servo_driven_thread.start()
+
+		except Exception as e:
+			print "Not Import Embedded Module", e 
+
 
 		monitor_thread.start()
 

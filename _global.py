@@ -39,7 +39,7 @@ None = No Client
 CONTROL_MODE = None
 
 # Host Ip
-HOST = "192.168.100.1"
+HOST = "192.168.137.1"
 
 
 # Set Logger
