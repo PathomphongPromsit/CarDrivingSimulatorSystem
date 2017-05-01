@@ -14,11 +14,6 @@ DEFALUT_SPEED = 0
 DEFALUT_GEAR = "N"
 
 
-# Queue of order from data reciever
-import Queue
-TASK_QUEUE = Queue.Queue() 
-
-
 # Phone Object socket
 PHONE_DRIVER = None
 PHONE_CMD = None
@@ -27,11 +22,7 @@ PHONE_CMD = None
 SIMULATOR_SET_DRIVER = None
 SIMULATOR_SET_CMD = None
 
-# Current Driver Object socket 
-DRIVER = None
-
 """ Determine 
-
 0 = PH Control
 1 = SIM Control
 None = No Client 
@@ -39,7 +30,7 @@ None = No Client
 CONTROL_MODE = None
 
 # Host Ip
-HOST = "192.168.100.1"
+HOST = "192.168.137.1"
 
 
 # Set Logger

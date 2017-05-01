@@ -1,5 +1,5 @@
 #Default system value 
-HOST = "192.168.100.1"
+HOST = "192.168.137.1"
 
 DEFALUT_GEAR = "N" 
 

@@ -6,10 +6,16 @@ from time import sleep
 
 # Import global variable
 from _global import *
-from _embeded import *
+
+try:
+	from _embeded import *
+
+except Exception as e:
+	print "No Pymata Directory"
+	pass 
 
 # Command Server
-class commandSocket(threading.Thread):
+class CommandSocket(threading.Thread):
 	command_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	command_sock.bind((HOST, 7769))
 	command_sock.listen(2)
@@ -263,21 +269,6 @@ def socketResponse(conn, message):
 	except Exception as e:
 		logging.debug("Command response Failed %r",e)
 
-
-		
-def Driving():
-	if DRIVER != None :
-		new_thread = threading.Thread(name="Driver", target=MotorControl)
-		THREAD_POOL.append(new_thread)
-	else:
-		CURRENT_SPEED = DEFALUT_SPEED 
-
-
-def checkIntToStr(arg):
-	try:
-		return int(arg)
-	except Exception as e:
-		return False
 """
 Set Current Speed 
 """
@@ -300,7 +291,6 @@ def updateCurrentValue (in_head,in_data):
 
 	except :
 		pass
-
 	
 
 def CurrentSpeedControl():
@@ -385,67 +375,7 @@ def CurrentSpeedControl():
 		# # time.sleep(0.1)
 
 
-"""
-Command Motor By CURRENT_SPEED
-"""
-def MotorController():
-	global CURRENT_GEAR,CURRENT_SPEED
-	MaxSpeed = 160.0
 
-	pwmStartRun = 0.20 #Motor begin run
-	pwmMaxRun = 0.60
-	pwmRange = pwmMaxRun - pwmStartRun
-
-	while True:
-		t1 = time.time()
-		
-		if CURRENT_GEAR == 'D':
-			if CURRENT_SPEED == 0:
-				board.digital[3].write(0)
-			else:
-
-				pwmForword = (CURRENT_SPEED/MaxSpeed * pwmRange) + pwmStartRun
-				board.digital[3].write(pwmForword)
-
-		elif CURRENT_GEAR == 'R':
-			if CURRENT_SPEED == 0:
-				board.digital[5].write(0)
-			else:
-				pwmReverse= (CURRENT_SPEED/MaxSpeed * pwmRange) + pwmStartRun
-				board.digital[5].write(pwmReverse)
-			
-
-		elif CURRENT_GEAR == 'P':
-			
-			board.digital[3].write(0.02)
-			
-
-		elif CURRENT_GEAR == 'N':
-
-			board.digital[3].write(0)
-		#t2 = time.time()
-
-		# print "time used ", t2-t1
-
-"""
-Command Servo By CURRENT_WHEEL_ANGLES
-"""
-def ServoController():
-	global CURRENT_WHEEL_ANGLES
-	while True:
-		
-		left = 75 											#left max degree
-		right = 125 										#right max degree
-		carDegree = left+(((right-left)*CURRENT_WHEEL_ANGLES)/180)		#cal degree servo
-		board.digital[12].write(carDegree)	
-
-
-def DriverController():
-	global CONTROL_MODE, DRIVER
-	if CONTROL_MODE == 1:
-		if DRIVER != None and SIMULATOR_SET.is_connect :
-			SIMULATOR_SET.stop()
-		PHONE.start()
 
 """
 @param
@@ -462,12 +392,6 @@ def changeGear(value):
 			PHONE_CMD.send(response_message)
 		print "Change gear to ", value
 
-def assignTask(head, value):
-	control_head = ['a','t','b']
-	if head in control_head:
-		TASK_QUEUE.put(head+value)
-	# elif head == 'g' :
-	# 	changeGear(value)
 
 def decode(income_data):
 	__header = ['a','b','t','g']
@@ -503,14 +427,14 @@ def decodeFromTaskQueue(task_data):
 	updateCurrentValue(task_data[0], block_value)
 	# print task_data[0],block_value
 
+# deprecated use Queue
+# def getDataFromTask():
 
-def getDataFromTask():
+# 	global TASK_QUEUE
+# 	while True:
 
-	global TASK_QUEUE
-	while True:
-
-		while not TASK_QUEUE.empty():
-		    decodeFromTaskQueue(TASK_QUEUE.get())
+# 		while not TASK_QUEUE.empty():
+# 		    decodeFromTaskQueue(TASK_QUEUE.get())
 
 # Get Current Phone device is connecting 
 def getPhoneClient():
@@ -544,9 +468,8 @@ if __name__ == '__main__':
 
 
 	# Socket Part
-	command_socket_thread = commandSocket()
+	command_socket_thread = CommandSocket()
 	command_socket_thread.setDaemon(True)
-
 
 	driver_control_socket_thread = threading.Thread(name="Driver_Control_Socket_Thread", target=DriverControlSocket)
 	driver_control_socket_thread.setDaemon(True)
@@ -556,14 +479,17 @@ if __name__ == '__main__':
 	# car_sys_update_data_driven_thread.setDaemon(True)
 
 	car_sys_cal_speed_driven_thread = threading.Thread(name = "Car_System_CalSpeed_Driven", target =CurrentSpeedControl)
-	car_sys_motor_driven_thread = threading.Thread(name="Car_System_Motor_Driven", target=MotorController)
-	car_sys_servo_driven_thread = threading.Thread(name="Car_System_Servo_Driven", target=ServoController)
+
+	if ("MotorController" in locals()) and ("ServoController" in locals()) :
+
+		car_sys_motor_driven_thread = threading.Thread(name="Car_System_Motor_Driven", target=MotorController)
+		car_sys_servo_driven_thread = threading.Thread(name="Car_System_Servo_Driven", target=ServoController)
+		car_sys_motor_driven_thread.setDaemon(True)
+		car_sys_servo_driven_thread.setDaemon(True)
+
 
 	car_sys_cal_speed_driven_thread.setDaemon(True)
-	car_sys_motor_driven_thread.setDaemon(True)
-	car_sys_servo_driven_thread.setDaemon(True)
 
-	# car_sys_gear_control_thread = threading.Thread("Car_System_Gear_Control", target=GeearController)
 
 	# Monitor thread  
 	monitor_thread = threading.Thread(target = monitor)
@@ -580,8 +506,10 @@ if __name__ == '__main__':
 
 		# car_sys_update_data_driven_thread.start()
 		car_sys_cal_speed_driven_thread.start()
-		car_sys_motor_driven_thread.start()
-		car_sys_servo_driven_thread.start()
+
+		if ("MotorController" in locals()) and ("ServoController" in locals()) :
+			car_sys_motor_driven_thread.start()
+			car_sys_servo_driven_thread.start()
 
 		monitor_thread.start()
 
