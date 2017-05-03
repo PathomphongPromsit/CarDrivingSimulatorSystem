@@ -223,33 +223,40 @@ def command(conn, message):
 		cameraControlByOmega(message_block[1])
 
 	elif message_block[0] == '-ccp':
-		cameraControlByAngle(message_block[1])
+		cameraControlByAngle( int(message_block[1]))
 		# Todo recieve value from camera changed 
 
 def cameraControlByAngle(angle):
-	
+	print angle
 	left = 30 											#left max degree
 	right = 150 										#right max degree
 	camDegree = left+(((right-left)*angle)/180)		#cal degree servo
-	board.digital[10].write(camDegree)	
 
+	try :
+		board.digital[10].write(camDegree)	
+	except:
+		print "Not found connect device"
 
 def cameraControlByOmega(omega):
 	global CAM  #CAM += omega
 	CAM += omega
 	left = 30											#left max degree
 	right = 150											#right max degree
-	
+
 	if CAM > 180:
 		CAM = 180
 		camDegree = 180	
 	elif CAM < 0:
 		CAM = 0
 		camDegree =0
-	else
+	else:
 		camDegree = left+(((right-left)*CAM)/180)		#cal degree servo
 	
-	board.digital[10].write(camDegree)
+	try :
+		board.digital[10].write(camDegree)	
+	except:
+		print "Not found connect device"
+
 
 
 
@@ -435,23 +442,7 @@ def ServoController():
 		carDegree = left+(((right-left)*CURRENT_WHEEL_ANGLES)/180)		#cal degree servo
 		board.digital[12].write(carDegree)	
 
-def CameraController():   
-	global CAM  #CAM += omega
-	while True:
-		
-		left = 30											#left max degree
-		right = 150											#right max degree
-		
-		if CAM >180:
-			CAM = 180
-			camDegree = 180	
-		elif CAM < 0:
-			CAM = 0
-			camDegree =0
-		else
-			camDegree = left+(((right-left)*CAM)/180)		#cal degree servo
-		
-		board.digital[10].write(camDegree)	
+
 
 """
 @param
