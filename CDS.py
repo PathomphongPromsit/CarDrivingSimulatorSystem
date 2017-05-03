@@ -226,20 +226,30 @@ def command(conn, message):
 		cameraControlByAngle(message_block[1])
 		# Todo recieve value from camera changed 
 
-def cameraControlByAngle(andgle):
-	try:
-		board.digital[10].write(angle)
-
-	except:
-		pass
+def cameraControlByAngle(angle):
+	
+	left = 30 											#left max degree
+	right = 150 										#right max degree
+	camDegree = left+(((right-left)*angle)/180)		#cal degree servo
+	board.digital[10].write(camDegree)	
 
 
 def cameraControlByOmega(omega):
-	try:
-		board.digital[10].write(omega)
-
-	except:
-		pass
+	global CAM  #CAM += omega
+	CAM += omega
+	left = 30											#left max degree
+	right = 150											#right max degree
+	
+	if CAM > 180:
+		CAM = 180
+		camDegree = 180	
+	elif CAM < 0:
+		CAM = 0
+		camDegree =0
+	else
+		camDegree = left+(((right-left)*CAM)/180)		#cal degree servo
+	
+	board.digital[10].write(camDegree)
 
 
 

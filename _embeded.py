@@ -9,3 +9,5 @@ board.digital[5].mode = PWM #revers Pin
 board.digital[12].mode = SERVO #servo Pin
 board.digital[12].write(100) # defult Degree
 
+board.digital[10].mode = SERVO #cam Pin
+board.digital[10].write(90) #
