@@ -413,6 +413,24 @@ def ServoController():
 		carDegree = left+(((right-left)*CURRENT_WHEEL_ANGLES)/180)		#cal degree servo
 		board.digital[12].write(carDegree)	
 
+def CameraController():   
+	global CAM  #CAM += omega
+	while True:
+		
+		left = 30											#left max degree
+		right = 150											#right max degree
+		
+		if CAM >180:
+			CAM = 180
+			camDegree = 180	
+		elif CAM < 0:
+			CAM = 0
+			camDegree =0
+		else
+			camDegree = left+(((right-left)*CAM)/180)		#cal degree servo
+		
+		board.digital[10].write(camDegree)	
+
 """
 @param
 String head
