@@ -53,6 +53,7 @@ class CommandSocket(threading.Thread):
 				command(conn, raw_data)
 				
 		except Exception as e:
+			conn.close()
 			logging.debug("Command Socket Disconnected from %r %r", addr, e)
 			global CURRENT_SPEED,CURRENT_GEAR,CURRENT_WHEEL_ANGLES,ACCELERATOR,BRAKE
 			#set car defult value  
@@ -68,7 +69,6 @@ class DeviceSocket(threading.Thread):
 		threading.Thread.__init__(self)
 		self._device_name = device_name
 		self.driver_sock = conn
-		self.setDaemon(True)
 		self.driver_event = threading.Event()
 
 	def setDriverEvent(self, event):
@@ -84,7 +84,7 @@ class DeviceSocket(threading.Thread):
 		self.driver_sock = conn
 
 	def getDriverSocket(self):
-		return self.driver_sock
+		return self._device_name
 
 	def getId(self):
 		return self._Id
@@ -109,10 +109,14 @@ class DeviceSocket(threading.Thread):
 			lock.acquire()
 			if self.getDeviceName() == "PHONE":
 				global PHONE_DRIVER, PHONE_CMD
-				PHONE_CMD.close()
-				PHONE_DRIVER.getDriverSocket.close()
-				PHONE_DRIVER = None ;
-				PHONE_CMD = None ; 
+				try:
+
+					PHONE_CMD.close()
+					PHONE_DRIVER.getDriverSocket.close()
+					PHONE_DRIVER = None ;
+					PHONE_CMD = None ; 
+				except Exception as e:
+					print "failed to close phone", e 
 			else:
 				global SIMULATOR_SET_CMD, SIMULATOR_SET_DRIVER
 				SIMULATOR_SET_DRIVER = None ;
@@ -210,25 +214,33 @@ def command(conn, message):
 	message_block = message.split()
 
 	if message_block[0] == '-cg':
-		changeGear(message_block[1] )
+		changeGear(message_block[1][0] )
 
 	elif message_block[0] == '-cm':
 		changeControlmode(message_block[1] )
 
 	elif message_block[0] == '-cc':
-		global CAM
+		cameraControlByOmega(message_block[1])
 
-		try :
-			# print message_block[1]
-			CAM += float(message_block[1]) 
-			if abs(CAM) > 1:
-				print CAM
-				CAM = 0
-
-		except :
-			pass
-
+	elif message_block[0] == '-ccp':
+		cameraControlByAngle(message_block[1])
 		# Todo recieve value from camera changed 
+
+def cameraControlByAngle(andgle):
+	try:
+		board.digital[10].write(angle)
+
+	except:
+		pass
+
+
+def cameraControlByOmega(omega):
+	try:
+		board.digital[10].write(omega)
+
+	except:
+		pass
+
 
 
 def changeControlmode(cmd):

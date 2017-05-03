@@ -7,7 +7,11 @@ CURRENT_WHEEL_ANGLES = 90
 ACCELERATOR = 0
 BRAKE = 0
 
+<<<<<<< HEAD
 CAM = 90  # CAM+=omega
+=======
+CAM = 90
+>>>>>>> 618beed6e68743dad1889e0b442c5390737560a2
 
 # Static Value
 DEFALUT_SPEED = 0
