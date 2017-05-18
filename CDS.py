@@ -17,11 +17,10 @@ class CommandSocket(threading.Thread):
 		threading.Thread.__init__(self)
 		self.setDaemon(True)
 
-
 	def run(self):
 		while True:
 			conn, addr = self.command_sock.accept()
-			logging.debug( "Main socket connect from %r", addr)
+			logging.debug( "Command socket connect from %r", addr)
 			self.commandSocketRegistrar(conn,addr)
 
 	def commandSocketRegistrar(self, conn, addr):
@@ -105,25 +104,26 @@ class DeviceSocket(threading.Thread):
 				
 		except Exception as e:
 			lock = threading.Lock()
-
 			lock.acquire()
+
 			if self.getDeviceName() == "PHONE":
 				global PHONE_DRIVER, PHONE_CMD
 				try:
-
-					PHONE_CMD.close()
-					PHONE_DRIVER.getDriverSocket.close()
 					PHONE_DRIVER = None ;
 					PHONE_CMD = None ; 
 				except Exception as e:
-					print "failed to close phone", e 
+					logging.debug("failed to close phone %r",e)
+
 			else:
 				global SIMULATOR_SET_CMD, SIMULATOR_SET_DRIVER
-				SIMULATOR_SET_DRIVER = None ;
-				SIMULATOR_SET_CMD = None ;
+				try:
+					SIMULATOR_SET_DRIVER = None ;
+					SIMULATOR_SET_CMD = None ;
+				except Exception as e:
+					logging.debug("failed to close phone %r",e)
 
-			print "Disconenct by", self.getDeviceName(), 
-			print e
+
+			logging.debug("Disconenct by %r %r", self.getDeviceName(), e)
 			lock.release()
 
 """
@@ -150,7 +150,6 @@ Driver Control Socket
 def DriverControlSocket():
 	global CONTROL_MODE, PHONE_DRIVER, CONTROL_MODE, SIMULATOR_SET_DRIVER, PHONE_DRIVER
 
-
 	driver_control_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	driver_control_sock.bind((HOST, 7789))
 	driver_control_sock.listen(2)
@@ -172,7 +171,6 @@ def DriverControlSocket():
 
 					print "Driver control cant send to command socket", e
 
-
 				#Have SIMSET connect
 				if SIMULATOR_SET_DRIVER != None :
 					PHONE_CMD.send("-s "+getSimulatorStatus() )
@@ -185,7 +183,6 @@ def DriverControlSocket():
 					PHONE_DRIVER.getEvent().set()
 
 				PHONE_DRIVER.start()
-
 
 			elif id_mess == "SIMULATOR_SET":
 				SIMULATOR_SET_DRIVER = DeviceSocket(conn, "SIMULATOR_SET")	
@@ -220,7 +217,7 @@ def command(conn, message):
 		changeControlmode(message_block[1] )
 
 	elif message_block[0] == '-cc':
-		cameraControlByOmega(message_block[1])
+		cameraControlByOmega( float(message_block[1]))
 
 	elif message_block[0] == '-ccp':
 		cameraControlByAngle( int(message_block[1]))
@@ -257,12 +254,8 @@ def cameraControlByOmega(omega):
 	except:
 		print "Not found connect device"
 
-
-
-
 def changeControlmode(cmd):
 	global CONTROL_MODE, PHONE_DRIVER, CONTROL_MODE, SIMULATOR_SET_DRIVER
-
 	
 	if cmd == "PH" and CONTROL_MODE != 0 and PHONE_DRIVER != None:
 		CONTROL_MODE = 0
@@ -306,12 +299,10 @@ def updateCurrentValue (in_head,in_data):
 
 	except :
 		pass
-	
 
 def CurrentSpeedControl():
 	global CURRENT_SPEED,ACCELERATOR,BRAKE,CURRENT_GEAR
 	while True:
-		
 		
 		if CURRENT_GEAR == 'D':
 			defaultSpeed = 5.0
@@ -387,7 +378,6 @@ def CurrentSpeedControl():
 		else:
 			CURRENT_SPEED = 0
 
-
 """
 Command Motor By CURRENT_SPEED
 """
@@ -415,8 +405,7 @@ def MotorController():
 				board.digital[5].write(0)
 			else:
 				pwmReverse= (CURRENT_SPEED/MaxSpeed * pwmRange) + pwmStartRun
-				board.digital[5].write(pwmReverse)
-			
+				board.digital[5].write(pwmReverse)			
 
 		elif CURRENT_GEAR == 'P':
 			
@@ -436,13 +425,13 @@ Command Servo By CURRENT_WHEEL_ANGLES
 def ServoController():
 	global CURRENT_WHEEL_ANGLES
 	while True:
-		
-		left = 75 											#left max degree
-		right = 125 										#right max degree
-		carDegree = left+(((right-left)*CURRENT_WHEEL_ANGLES)/180)		#cal degree servo
+		#left max degree
+		left = 75 	
+		#right max degree													
+		right = 125 		
+		#cal degree servo											
+		carDegree = left+(((right-left)*CURRENT_WHEEL_ANGLES)/180)		
 		board.digital[12].write(carDegree)	
-
-
 
 """
 @param
@@ -458,7 +447,6 @@ def changeGear(value):
 		if PHONE_CMD != None:
 			PHONE_CMD.send(response_message)
 		print "Change gear to ", value
-
 
 def decode(income_data):
 	__header = ['a','b','t','g']
@@ -486,12 +474,12 @@ def decode(income_data):
 			updateCurrentValue(block_head, block_value)
 			
 
-def decodeFromTaskQueue(task_data): 
-	lenght = len(task_data)
-	block_value = ""
-	for i in range(1, lenght):
-		block_value += task_data[i]
-	updateCurrentValue(task_data[0], block_value)
+# def decodeFromTaskQueue(task_data): 
+# 	lenght = len(task_data)
+# 	block_value = ""
+# 	for i in range(1, lenght):
+# 		block_value += task_data[i]
+# 	updateCurrentValue(task_data[0], block_value)
 	# print task_data[0],block_value
 
 # deprecated use Queue
@@ -526,7 +514,7 @@ def monitor():
 	while True:
 		print 'acc', ACCELERATOR, 'brk', BRAKE, 'spd', CURRENT_SPEED, 'gear', CURRENT_GEAR, 'ang', CURRENT_WHEEL_ANGLES
 		print "Control mode: ",CONTROL_MODE
-		print 'Client', PHONE_CMD, PHONE_DRIVER, SIMULATOR_SET_CMD, SIMULATOR_SET_DRIVER
+		print 'Client', getPhoneClient(), getSimClient()
 		print "\n"
 		time.sleep(2)
 
@@ -552,7 +540,7 @@ if __name__ == '__main__':
 	# Start System 
 	try:
 		print acii_text
-		print "Start "
+		
 
 		command_socket_thread.start()
 		driver_control_socket_thread.start()
@@ -570,9 +558,11 @@ if __name__ == '__main__':
 
 			car_sys_motor_driven_thread.start()
 			car_sys_servo_driven_thread.start()
+			print "Start !!"
 
 		except Exception as e:
 			print "Not Import Embedded Module", e 
+			print "Start Test Mode" 
 
 
 		monitor_thread.start()
